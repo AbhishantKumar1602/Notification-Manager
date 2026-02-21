@@ -1,0 +1,17 @@
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.GeneratedMSBuildEditorConfig.editorconfig
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.AssemblyInfoInputs.cache
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.AssemblyInfo.cs
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.csproj.CoreCompileInputs.cache
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\dismiss_notif.exe
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\dismiss_notif.deps.json
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\dismiss_notif.runtimeconfig.json
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\dismiss_notif.dll
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\dismiss_notif.pdb
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\Microsoft.Windows.SDK.NET.dll
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\bin\Debug\net8.0-windows10.0.19041.0\WinRT.Runtime.dll
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_.D12DAD5B.Up2Date
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.dll
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\refint\dismiss_notif.dll
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.pdb
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\dismiss_notif.genruntimeconfig.cache
+D:\OLM_project_de\wpn_runner\wpn_runner\dismiss_notif\obj\Debug\net8.0-windows10.0.19041.0\ref\dismiss_notif.dll

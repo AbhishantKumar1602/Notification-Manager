@@ -1,0 +1,2 @@
+D:\OLM_project_de\Notification_cleaner - Update\dismiss_notif\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\dismiss_notif.pdb
+D:\OLM_project_de\Notification_cleaner - Update\dismiss_notif\bin\Release\net8.0-windows10.0.19041.0\win-x64\publish\dismiss_notif.exe

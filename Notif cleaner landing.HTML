@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification Manager — Windows Notification Cleaner</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Clash+Display:wght@400;500;600;700&family=Epilogue:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06080d;
+  --panel: #0b0f17;
+  --panel2: #101520;
+  --border: rgba(255,255,255,0.06);
+  --border-glow: rgba(0,212,170,0.25);
+  --green: #00d4aa;
+  --green-dim: rgba(0,212,170,0.08);
+  --red: #ff4566;
+  --red-dim: rgba(255,69,102,0.08);
+  --yellow: #f5c518;
+  --blue: #4d9fff;
+  --text: #dce5f0;
+  --muted: #576070;
+  --muted2: #8892a0;
+  --mono: 'JetBrains Mono', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Epilogue', sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* SCANLINE OVERLAY */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2.5rem;
+  background: rgba(6,8,13,0.9);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-dot {
+  width: 8px; height: 8px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.nav-links {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--muted2);
+}
+
+.nav-links a {
+  color: var(--muted2);
+  text-decoration: none;
+  transition: color 0.2s;
+  font-family: var(--mono);
+}
+
+.nav-links a:hover { color: var(--green); }
+
+.nav-buy {
+  background: var(--green);
+  color: #000;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 0.5rem 1.3rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.nav-buy:hover { opacity: 0.85; transform: translateY(-1px); }
+
+/* ====== HERO ====== */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 7rem 2rem 4rem;
+  position: relative;
+}
+
+.hero-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.hero-orb {
+  position: absolute;
+  width: 600px; height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,170,0.06) 0%, transparent 65%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(0,212,170,0.3);
+  background: rgba(0,212,170,0.05);
+  color: var(--green);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 2px;
+  margin-bottom: 2rem;
+  letter-spacing: 0.08em;
+  animation: fadeUp 0.5s ease both;
+}
+
+.status-chip::before {
+  content: '';
+  width: 5px; height: 5px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: blink 1.5s infinite;
+}
+
+h1 {
+  font-family: 'Clash Display', 'Epilogue', sans-serif;
+  font-size: clamp(2.6rem, 5.5vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  max-width: 780px;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--green);
+  position: relative;
+}
+
+h1 .kill {
+  color: var(--red);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.hero-desc {
+  margin: 1.5rem auto 0;
+  max-width: 540px;
+  color: var(--muted2);
+  font-size: 1.05rem;
+  font-weight: 300;
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+
+.hero-desc strong { color: var(--text); font-weight: 500; }
+
+.hero-cta-group {
+  margin-top: 2.5rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+
+.btn-main {
+  background: var(--green);
+  color: #000;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.85rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 0 40px rgba(0,212,170,0.2);
+  transition: all 0.2s;
+}
+
+.btn-main:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(0,212,170,0.35); }
+
+.btn-ghost {
+  border: 1px solid var(--border);
+  color: var(--muted2);
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  padding: 0.85rem 1.8rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.2s;
+  background: var(--panel);
+}
+
+.btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+.one-time-note {
+  margin-top: 1rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  animation: fadeUp 0.5s 0.4s ease both;
+}
+
+.one-time-note span { color: var(--green); }
+
+/* ====== LIVE TERMINAL ====== */
+.terminal-wrap {
+  margin-top: 4rem;
+  width: 100%;
+  max-width: 680px;
+  animation: fadeUp 0.6s 0.5s ease both;
+}
+
+.terminal {
+  background: #080c12;
+  border: 1px solid rgba(0,212,170,0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,170,0.05);
+}
+
+.terminal-bar {
+  background: #0e1420;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.t-dot { width: 10px; height: 10px; border-radius: 50%; }
+.t-dot.r { background: #ff5f57; }
+.t-dot.y { background: #febc2e; }
+.t-dot.g { background: #28c840; }
+
+.t-title {
+  flex: 1;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.terminal-body {
+  padding: 1.2rem 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.8;
+  min-height: 240px;
+}
+
+.t-line { display: block; }
+.t-green { color: var(--green); }
+.t-red { color: var(--red); }
+.t-yellow { color: var(--yellow); }
+.t-blue { color: var(--blue); }
+.t-muted { color: var(--muted); }
+.t-white { color: var(--text); }
+
+.cursor {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--green);
+  vertical-align: middle;
+  animation: blink 1s infinite;
+  margin-left: 2px;
+}
+
+/* ====== HOW IT ACTUALLY WORKS ====== */
+.section {
+  padding: 6rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--green);
+  border: 1px solid rgba(0,212,170,0.2);
+  padding: 0.25rem 0.7rem;
+  border-radius: 2px;
+  margin-bottom: 1.2rem;
+}
+
+h2 {
+  font-family: 'Clash Display', 'Epilogue', sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+.section-sub {
+  color: var(--muted2);
+  max-width: 500px;
+  font-weight: 300;
+  font-size: 0.95rem;
+}
+
+/* TECH FLOW */
+.tech-flow {
+  margin-top: 3.5rem;
+  display: grid;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.flow-step {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  background: var(--panel);
+  transition: background 0.2s;
+}
+
+.flow-step:hover { background: var(--panel2); }
+
+.flow-num {
+  background: var(--panel2);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.flow-step-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.flow-step-num {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+  opacity: 0.4;
+}
+
+.flow-func {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--blue);
+}
+
+.flow-content {
+  padding: 1.5rem 2rem;
+}
+
+.flow-title {
+  font-family: 'Clash Display', 'Epilogue', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+}
+
+.flow-desc {
+  font-size: 0.88rem;
+  color: var(--muted2);
+  line-height: 1.7;
+}
+
+.flow-desc .mono {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--blue);
+  background: rgba(77,159,255,0.08);
+  border: 1px solid rgba(77,159,255,0.15);
+  border-radius: 3px;
+  padding: 0.05rem 0.4rem;
+}
+
+.flow-desc .path {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--yellow);
+}
+
+/* ====== DIVIDER ====== */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0;
+}
+
+/* ====== FILE CONFIG SECTION ====== */
+.config-section {
+  padding: 6rem 2rem;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.config-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.file-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.file-card:hover { border-color: rgba(0,212,170,0.25); }
+
+.file-card-header {
+  background: var(--panel2);
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-icon { font-size: 0.9rem; }
+
+.file-name {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--yellow);
+}
+
+.file-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+  background: var(--border);
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+}
+
+.file-body {
+  padding: 1rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 2;
+}
+
+.file-comment { color: var(--muted); }
+.file-entry-green { color: var(--green); }
+.file-entry-red { color: var(--red); opacity: 0.5; text-decoration: line-through; }
+
+.config-note {
+  margin-top: 1.5rem;
+  background: rgba(0,212,170,0.04);
+  border: 1px solid rgba(0,212,170,0.12);
+  border-radius: 6px;
+  padding: 1rem 1.3rem;
+  font-size: 0.85rem;
+  color: var(--muted2);
+  line-height: 1.7;
+}
+
+.config-note strong { color: var(--green); font-weight: 500; }
+
+/* ====== NOTIFICATION DEMO ====== */
+.demo-section {
+  padding: 6rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 3rem;
+  align-items: start;
+}
+
+.demo-col-label {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.demo-col-label.bad { color: var(--red); }
+.demo-col-label.good { color: var(--green); }
+
+.notif-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.84rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.notif-card.bad {
+  border-color: rgba(255,69,102,0.15);
+  animation: strikeThrough 3s ease infinite;
+}
+
+@keyframes strikeThrough {
+  0%, 60% { opacity: 1; transform: translateX(0); }
+  80% { opacity: 0.3; transform: translateX(15px); border-color: rgba(255,69,102,0.4); }
+  85% { opacity: 0; transform: translateX(60px); }
+  86% { opacity: 0; transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+.notif-card.bad:nth-child(2) { animation-delay: 0.8s; }
+.notif-card.bad:nth-child(3) { animation-delay: 1.6s; }
+.notif-card.bad:nth-child(4) { animation-delay: 2.4s; }
+
+.notif-card.good { border-color: rgba(0,212,170,0.15); }
+
+.n-icon {
+  width: 30px; height: 30px;
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.n-icon.spam { background: rgba(255,69,102,0.1); }
+.n-icon.keep { background: rgba(0,212,170,0.08); }
+
+.n-body { flex: 1; }
+.n-app { font-size: 0.68rem; color: var(--muted); font-family: var(--mono); margin-bottom: 0.1rem; }
+.n-msg { color: var(--text); font-size: 0.84rem; }
+
+.n-tag {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.n-tag.blocked { background: rgba(255,69,102,0.12); color: var(--red); border: 1px solid rgba(255,69,102,0.25); }
+.n-tag.kept { background: rgba(0,212,170,0.08); color: var(--green); border: 1px solid rgba(0,212,170,0.2); }
+
+/* ====== FEATURES ====== */
+.features-section {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6rem 2rem;
+}
+
+.features-inner { max-width: 1100px; margin: 0 auto; }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  margin-top: 3rem;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.feat {
+  background: var(--panel);
+  padding: 1.8rem;
+  transition: background 0.2s;
+}
+
+.feat:hover { background: var(--panel2); }
+
+.feat-icon { font-size: 1.6rem; margin-bottom: 1rem; display: block; }
+
+.feat-title {
+  font-family: 'Clash Display', 'Epilogue', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.feat-desc { font-size: 0.84rem; color: var(--muted2); line-height: 1.6; }
+
+.feat-tag {
+  display: inline-block;
+  margin-top: 0.8rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid rgba(0,212,170,0.15);
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+}
+
+/* ====== AUDIENCE ====== */
+.audience-section {
+  padding: 6rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.audience-list {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.aud-row {
+  display: grid;
+  grid-template-columns: 60px 180px 1fr;
+  align-items: center;
+  background: var(--panel);
+  padding: 1.4rem 1.5rem;
+  gap: 1.5rem;
+  transition: background 0.2s;
+}
+
+.aud-row:hover { background: var(--panel2); }
+
+.aud-emoji { font-size: 1.8rem; }
+
+.aud-type {
+  font-family: 'Clash Display', 'Epilogue', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.aud-detail { font-size: 0.86rem; color: var(--muted2); line-height: 1.6; }
+
+/* ====== STATS ====== */
+.stats-section {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 6rem 2rem;
+}
+
+.stats-inner { max-width: 1100px; margin: 0 auto; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1px;
+  margin-top: 3rem;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stat-box {
+  background: var(--bg);
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value.g { color: var(--green); }
+.stat-value.r { color: var(--red); }
+.stat-value.b { color: var(--blue); }
+
+.stat-label { font-size: 0.82rem; color: var(--muted2); max-width: 160px; margin: 0 auto; line-height: 1.5; }
+
+.compare-table {
+  margin-top: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.c-col {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.c-col-head {
+  padding: 1rem 1.3rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+
+.c-col-head.bad { color: var(--red); background: var(--red-dim); }
+.c-col-head.good { color: var(--green); background: var(--green-dim); }
+
+.c-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.7rem 1.3rem;
+  font-size: 0.84rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.c-row:last-child { border-bottom: none; }
+.c-label { color: var(--muted2); }
+.c-val { font-family: var(--mono); font-weight: 600; }
+.c-col.bad .c-val { color: var(--red); }
+.c-col.good .c-val { color: var(--green); }
+
+.yearly-banner {
+  margin-top: 1.5rem;
+  background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(77,159,255,0.06));
+  border: 1px solid rgba(0,212,170,0.15);
+  border-radius: 8px;
+  padding: 2.5rem;
+  text-align: center;
+}
+
+.yearly-big {
+  font-family: var(--mono);
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+
+.yearly-sub { color: var(--muted2); margin-top: 0.6rem; font-size: 0.9rem; font-weight: 300; }
+
+/* ====== BUY ====== */
+.buy-section {
+  padding: 7rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.buy-glow {
+  position: absolute;
+  width: 700px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0,212,170,0.06) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.buy-section h2 { font-size: clamp(2.2rem, 4vw, 3.5rem); margin-bottom: 1rem; }
+.buy-section p { color: var(--muted2); max-width: 460px; margin: 0 auto 2rem; font-weight: 300; }
+
+.price-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.price-num {
+  font-family: var(--mono);
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+
+.price-label { color: var(--muted); font-family: var(--mono); font-size: 0.9rem; }
+
+.buy-meta {
+  margin-top: 1.2rem;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.buy-meta span { display: flex; align-items: center; gap: 0.3rem; }
+
+/* ====== FOOTER ====== */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 1.8rem 2rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* ====== ANIMATIONS ====== */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.in { opacity: 1; transform: translateY(0); }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .config-grid, .demo-grid, .compare-table { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .flow-step { grid-template-columns: 1fr; }
+  .flow-num { border-right: none; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; flex-direction: row; gap: 1rem; }
+  .aud-row { grid-template-columns: 40px 1fr; }
+  .aud-type { display: none; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Notification_Manager.exe
+  </div>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#config">Setup</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#buy">Pricing</a></li>
+  </ul>
+  <a href="#buy" class="nav-buy">Get it — $9</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg-grid"></div>
+  <div class="hero-orb"></div>
+
+  <div class="status-chip">WINDOWS 10 &amp; 11 · PORTABLE EXE · NO INSTALL</div>
+
+  <h1>
+    Kill the <span class="kill">Notification</span><br>
+    Noise. Keep the<br>
+    <em>Signal.</em>
+  </h1>
+
+  <p class="hero-desc">
+    Notification Manager reads directly from the <strong>Windows Notification Database</strong> and automatically dismisses every app not on your whitelist — every few seconds, silently, forever.
+  </p>
+
+  <div class="hero-cta-group">
+    <a href="#buy" class="btn-main">⬇ Download Notification Manager</a>
+    <a href="#how" class="btn-ghost">See the Tech →</a>
+  </div>
+
+  <p class="one-time-note">One-time purchase · <span>No subscription · No background service installed</span></p>
+
+  <!-- LIVE TERMINAL -->
+  <div class="terminal-wrap">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="t-dot r"></div>
+        <div class="t-dot y"></div>
+        <div class="t-dot g"></div>
+        <div class="t-title">Notification_Manager.exe — Running</div>
+      </div>
+      <div class="terminal-body" id="termBody">
+        <span class="t-line t-green">🟢 Notification Auto Controller started (Interval: 15s)</span>
+        <span class="t-line t-muted">─────────────────────────────────────────</span>
+        <span class="t-line t-white">▶ Running: Extract_Notification_From_Database</span>
+        <span class="t-line t-muted">  ↳ Copying wpndatabase.db to temp...</span>
+        <span class="t-line t-muted">  ↳ Querying toast notifications...</span>
+        <span class="t-line t-green">✅ Notification classification complete</span>
+        <span class="t-line t-muted">   Wanted   : <span class="t-green">2</span>  (WhatsApp, Slack)</span>
+        <span class="t-line t-muted">   Unwanted : <span class="t-red">4</span>  (Windows, Antivirus, Chrome, News)</span>
+        <span class="t-line t-white">▶ Running: Remove_Unwanted_Notifications</span>
+        <span class="t-line t-muted">🧹 Dismissing 4 unwanted notifications...</span>
+        <span class="t-line t-red">  ❌ Dismissed: "Set up OneDrive"</span>
+        <span class="t-line t-red">  ❌ Dismissed: "Your subscription expires in 3 days"</span>
+        <span class="t-line t-red">  ❌ Dismissed: "Top stories for you"</span>
+        <span class="t-line t-red">  ❌ Dismissed: "Chrome: 3 new updates available"</span>
+        <span class="t-line t-green">🎯 Done. Wanted notifications preserved.</span>
+        <span class="t-line t-yellow">⏳ Waiting 15 seconds...<span class="cursor"></span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT ACTUALLY WORKS -->
+<section class="section" id="how">
+  <div class="section-badge reveal">How It Works</div>
+  <h2 class="reveal">How Notification Manager Actually Works</h2>
+  <p class="section-sub reveal">Simple, smart, and silent. Here's exactly what happens when you run it — no tech jargon.</p>
+
+  <div class="tech-flow reveal">
+    <div class="flow-step">
+      <div class="flow-num">
+        <span class="flow-step-label">Step 01</span>
+        <span class="flow-step-num">01</span>
+        <span class="flow-func">You run the app</span>
+      </div>
+      <div class="flow-content">
+        <div class="flow-title">You Double-Click and Answer Two Questions</div>
+        <div class="flow-desc">
+          A small popup appears asking: have you added your apps to the list? And how often should it check — every 15 seconds, 30 seconds, your choice. That's the only setup. After that, it runs silently in the background with no window, no taskbar icon, nothing to click.
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num">
+        <span class="flow-step-label">Step 02</span>
+        <span class="flow-step-num">02</span>
+        <span class="flow-func">It reads all your notifications</span>
+      </div>
+      <div class="flow-content">
+        <div class="flow-title">It Looks at Every Notification Currently on Your PC</div>
+        <div class="flow-desc">
+          Windows keeps a hidden record of every notification sitting in your system. Notification Manager reads that list — seeing exactly what's there right now, including the app name, the message text, and when it arrived. Think of it like peeking into your notification inbox, but automatically.
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num">
+        <span class="flow-step-label">Step 03</span>
+        <span class="flow-step-num">03</span>
+        <span class="flow-func">It checks your list</span>
+      </div>
+      <div class="flow-content">
+        <div class="flow-title">It Compares Each Notification to Your "Keep" List</div>
+        <div class="flow-desc">
+          You told it which apps you care about — WhatsApp, Slack, Outlook, whatever. For each notification it finds, it asks one simple question: <em>"Is this from an app the user wants to keep?"</em> If yes, it leaves it alone. If no — whether it's a Windows tip, antivirus upsell, or browser ad — it goes on the removal list.
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num">
+        <span class="flow-step-label">Step 04</span>
+        <span class="flow-step-num">04</span>
+        <span class="flow-func">It removes the junk</span>
+      </div>
+      <div class="flow-content">
+        <div class="flow-title">It Dismisses Unwanted Notifications Automatically</div>
+        <div class="flow-desc">
+          Every notification on the removal list gets dismissed — the same way you would by clicking the X, but done instantly and automatically. No mouse movement, no clicking around. It's gone before you even notice it appeared. Your Action Center stays clean.
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-step">
+      <div class="flow-num">
+        <span class="flow-step-label">Step 05</span>
+        <span class="flow-step-num">05</span>
+        <span class="flow-func">It keeps watching</span>
+      </div>
+      <div class="flow-content">
+        <div class="flow-title">It Repeats This Every Few Seconds, Forever</div>
+        <div class="flow-desc">
+          After cleaning, it waits for your chosen interval — say, 15 seconds — then does the whole thing again. New spam notification popped up? Gone on the next check. It never stops watching, never needs you to do anything, and uses almost no memory or CPU while it runs.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIG FILES -->
+<section class="config-section" id="config">
+  <div class="config-inner">
+    <div class="section-badge reveal">Dead Simple Setup</div>
+    <h2 class="reveal">Two Text Files. That's Your Config.</h2>
+    <p class="section-sub reveal">Notification Manager auto-creates these files on first run. Open them in Notepad and add the apps you want to keep. One name per line.</p>
+
+    <div class="config-grid reveal">
+      <div class="file-card">
+        <div class="file-card-header">
+          <span class="file-icon">📄</span>
+          <span class="file-name">target_apps.txt</span>
+          <span class="file-badge">APP NAMES</span>
+        </div>
+        <div class="file-body">
+          <div class="file-comment"># Add app names to keep. Case-insensitive.</div>
+          <div class="file-comment"># Matches title, subtitle, attribution & XML</div>
+          <br>
+          <div class="file-entry-green">WhatsApp</div>
+          <div class="file-entry-green">Slack</div>
+          <div class="file-entry-green">Outlook</div>
+          <div class="file-entry-green">Discord</div>
+          <div class="file-entry-green">Teams</div>
+          <br>
+          <div class="file-entry-red">Windows</div>
+          <div class="file-entry-red">OneDrive</div>
+          <div class="file-comment"># ↑ not on list = auto-dismissed</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-header">
+          <span class="file-icon">📄</span>
+          <span class="file-name">target_titles.txt</span>
+          <span class="file-badge">EXACT TITLES</span>
+        </div>
+        <div class="file-body">
+          <div class="file-comment"># Add exact notification titles to keep.</div>
+          <div class="file-comment"># Perfect for specific alerts you always want.</div>
+          <br>
+          <div class="file-entry-green">Build succeeded</div>
+          <div class="file-entry-green">Deployment complete</div>
+          <div class="file-entry-green">Meeting in 5 minutes</div>
+          <div class="file-entry-green">New pull request</div>
+          <br>
+          <div class="file-comment"># Exact title match takes priority</div>
+          <div class="file-comment"># over app matching</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-note reveal">
+      <strong>How matching works:</strong> Notification Manager checks if your app name appears anywhere inside the notification's title, subtitle, attribution field, or even the raw XML payload. This means writing "WhatsApp" will catch WhatsApp notifications regardless of how they're formatted internally.
+    </div>
+  </div>
+</section>
+
+<!-- NOTIFICATION DEMO -->
+<section class="demo-section">
+  <div class="section-badge reveal">Live Filter Demo</div>
+  <h2 class="reveal">What Gets Killed. What Stays.</h2>
+  <p class="section-sub reveal">Based on a typical <span style="font-family:var(--mono);color:var(--yellow);font-size:0.85em;">target_apps.txt</span> with WhatsApp, Slack, and Outlook.</p>
+
+  <div class="demo-grid reveal">
+    <div>
+      <div class="demo-col-label bad">❌ Auto-Dismissed (Spam)</div>
+      <div class="notif-card bad">
+        <div class="n-icon spam">🪟</div>
+        <div class="n-body">
+          <div class="n-app">Windows · System</div>
+          <div class="n-msg">Set up OneDrive to back up your files</div>
+        </div>
+        <div class="n-tag blocked">BLOCKED</div>
+      </div>
+      <div class="notif-card bad">
+        <div class="n-icon spam">🛡️</div>
+        <div class="n-body">
+          <div class="n-app">Antivirus · Renewal</div>
+          <div class="n-msg">Your subscription expires in 3 days!</div>
+        </div>
+        <div class="n-tag blocked">BLOCKED</div>
+      </div>
+      <div class="notif-card bad">
+        <div class="n-icon spam">📰</div>
+        <div class="n-body">
+          <div class="n-app">News &amp; Interests · Feed</div>
+          <div class="n-msg">Top stories are waiting for you</div>
+        </div>
+        <div class="n-tag blocked">BLOCKED</div>
+      </div>
+      <div class="notif-card bad">
+        <div class="n-icon spam">🌐</div>
+        <div class="n-body">
+          <div class="n-app">Chrome · Update</div>
+          <div class="n-msg">3 extensions need your attention</div>
+        </div>
+        <div class="n-tag blocked">BLOCKED</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="demo-col-label good">✓ Preserved (Your Apps)</div>
+      <div class="notif-card good">
+        <div class="n-icon keep">💬</div>
+        <div class="n-body">
+          <div class="n-app">WhatsApp · Chat</div>
+          <div class="n-msg">Hey, are you joining the call?</div>
+        </div>
+        <div class="n-tag kept">KEPT</div>
+      </div>
+      <div class="notif-card good">
+        <div class="n-icon keep">💼</div>
+        <div class="n-body">
+          <div class="n-app">Slack · #dev-team</div>
+          <div class="n-msg">PR review requested from you</div>
+        </div>
+        <div class="n-tag kept">KEPT</div>
+      </div>
+      <div class="notif-card good">
+        <div class="n-icon keep">📧</div>
+        <div class="n-body">
+          <div class="n-app">Outlook · Inbox</div>
+          <div class="n-msg">Meeting in 15 minutes: Sprint Review</div>
+        </div>
+        <div class="n-tag kept">KEPT</div>
+      </div>
+      <div class="notif-card good">
+        <div class="n-icon keep">🔔</div>
+        <div class="n-body">
+          <div class="n-app">Discord · Server</div>
+          <div class="n-msg">You were mentioned in #general</div>
+        </div>
+        <div class="n-tag kept">KEPT</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div class="features-inner">
+    <div class="section-badge reveal">What You Get</div>
+    <h2 class="reveal">Everything you need.<br>Nothing you don't.</h2>
+
+    <div class="features-grid reveal">
+      <div class="feat">
+        <span class="feat-icon">🗄️</span>
+        <div class="feat-title">Direct Database Access</div>
+        <div class="feat-desc">Reads directly from <code style="font-family:var(--mono);font-size:0.75em;color:var(--blue)">wpndatabase.db</code> — the actual Windows notification store. No screen-scraping, no UI automation.</div>
+        <span class="feat-tag">SQLite · wpndatabase.db</span>
+      </div>
+      <div class="feat">
+        <span class="feat-icon">🧠</span>
+        <div class="feat-title">Smart XML Parsing</div>
+        <div class="feat-desc">Decodes every notification's XML payload (UTF-16LE) and extracts title, subtitle, and attribution using BeautifulSoup.</div>
+        <span class="feat-tag">BeautifulSoup · XML</span>
+      </div>
+      <div class="feat">
+        <span class="feat-icon">🎯</span>
+        <div class="feat-title">Whitelist Matching</div>
+        <div class="feat-desc">Case-insensitive fuzzy matching against title, subtitle, attribution, and raw XML. One keyword catches all variants of that app's notifications.</div>
+        <span class="feat-tag">Fuzzy Match · Case-Insensitive</span>
+      </div>
+      <div class="feat">
+        <span class="feat-icon">⚙️</span>
+        <div class="feat-title">Native API Dismiss</div>
+        <div class="feat-desc">Uses a bundled .NET 8 helper to call the real Windows notification dismissal API. No fake clicks, no AutoHotkey scripts.</div>
+        <span class="feat-tag">.NET 8 · Windows API</span>
+      </div>
+      <div class="feat">
+        <span class="feat-icon">⚡</span>
+        <div class="feat-title">Fully Portable</div>
+        <div class="feat-desc">PyInstaller-bundled single EXE. No Python runtime. No installation. Drop it anywhere and run it. Works on any Windows 10/11 machine.</div>
+        <span class="feat-tag">PyInstaller · No Install</span>
+      </div>
+      <div class="feat">
+        <span class="feat-icon">🔁</span>
+        <div class="feat-title">Configurable Loop</div>
+        <div class="feat-desc">Set your own interval at startup. 15 seconds by default. Every cycle re-reads the DB, reclassifies, and dismisses fresh. Always up to date.</div>
+        <span class="feat-tag">Custom Interval · Always On</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AUDIENCE -->
+<section class="audience-section">
+  <div class="section-badge reveal">Perfect For</div>
+  <h2 class="reveal">Who Uses Notification Manager?</h2>
+
+  <div class="audience-list reveal">
+    <div class="aud-row">
+      <div class="aud-emoji">💻</div>
+      <div class="aud-type">Developers</div>
+      <div class="aud-detail">You're mid-debug, deep in a stack trace, and "Set up OneDrive" kills your train of thought. Keep your build notifications, kill everything else.</div>
+    </div>
+    <div class="aud-row">
+      <div class="aud-emoji">🎮</div>
+      <div class="aud-type">Gamers</div>
+      <div class="aud-detail">Keep Discord pings. Block every Windows update nag, antivirus upsell, and browser notification — without enabling full silent mode and missing your party invite.</div>
+    </div>
+    <div class="aud-row">
+      <div class="aud-emoji">🎙️</div>
+      <div class="aud-type">Streamers</div>
+      <div class="aud-detail">Never have a "renew your antivirus" popup appear live on stream again. Whitelist only what you need. Everything else is dismissed before your viewers see it.</div>
+    </div>
+    <div class="aud-row">
+      <div class="aud-emoji">🎨</div>
+      <div class="aud-type">Designers</div>
+      <div class="aud-detail">Flow state is everything. Notification Manager runs in the background while you work. You'll never even notice it — until you check your Action Center and find it spotless.</div>
+    </div>
+    <div class="aud-row">
+      <div class="aud-emoji">📊</div>
+      <div class="aud-type">Office Workers</div>
+      <div class="aud-detail">Keep Teams, Outlook, and Slack. Block every Windows tip, "feature suggestion", and promotional popup that Windows sneaks in when you're on a call.</div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-section">
+  <div class="stats-inner">
+    <div class="section-badge reveal">The Real Cost</div>
+    <h2 class="reveal">Notification spam is stealing your time.</h2>
+
+    <div class="stats-grid reveal">
+      <div class="stat-box">
+        <div class="stat-value r">23 min</div>
+        <div class="stat-label">Average time to regain full focus after a single distraction</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value r">20+</div>
+        <div class="stat-label">Useless notifications the average Windows user sees per day</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value g">30 hrs</div>
+        <div class="stat-label">Hours reclaimed per year — saving just 5 minutes of annoyance per day</div>
+      </div>
+    </div>
+
+    <div class="compare-table reveal">
+      <div class="c-col bad">
+        <div class="c-col-head bad">❌ Without Notification Manager</div>
+        <div class="c-row"><span class="c-label">Daily spam notifications</span><span class="c-val">20+</span></div>
+        <div class="c-row"><span class="c-label">Time to glance + dismiss</span><span class="c-val">5 sec each</span></div>
+        <div class="c-row"><span class="c-label">Clicking time per day</span><span class="c-val">~2 min</span></div>
+        <div class="c-row"><span class="c-label">Focus cost per distraction</span><span class="c-val">23 min</span></div>
+        <div class="c-row"><span class="c-label">Action Center clutter</span><span class="c-val">50+ unread</span></div>
+      </div>
+      <div class="c-col good">
+        <div class="c-col-head good">✅ With Notification Manager</div>
+        <div class="c-row"><span class="c-label">Daily spam notifications seen</span><span class="c-val">0</span></div>
+        <div class="c-row"><span class="c-label">Time spent dismissing</span><span class="c-val">0 sec</span></div>
+        <div class="c-row"><span class="c-label">Clicking time per day</span><span class="c-val">0 min</span></div>
+        <div class="c-row"><span class="c-label">Focus interruptions</span><span class="c-val">None</span></div>
+        <div class="c-row"><span class="c-label">Action Center clutter</span><span class="c-val">Clean ✓</span></div>
+      </div>
+    </div>
+
+    <div class="yearly-banner reveal">
+      <div class="yearly-big">30 Hours / Year</div>
+      <div class="yearly-sub">Given back to you — from eliminating just 5 minutes of daily notification noise.<br>That's almost a full work week of deep focus, reclaimed.</div>
+    </div>
+  </div>
+</section>
+
+<!-- BUY -->
+<section class="buy-section" id="buy">
+  <div class="buy-glow"></div>
+  <div style="position:relative;z-index:1;">
+    <div class="section-badge">Get Notification Manager</div>
+    <h2>One purchase.<br>Permanent silence.</h2>
+    <p>No subscription. No account. No telemetry. Just drop the EXE, add your apps, and forget it exists.</p>
+
+    <div class="price-row">
+      <span class="price-num">$9</span>
+      <span class="price-label">one-time</span>
+    </div>
+    <br>
+
+    <a href="#" class="btn-main" style="font-size:1rem;padding:1rem 2.5rem;">
+      ⬇ Download Notification_Manager.exe
+    </a>
+
+    <div class="buy-meta">
+      <span>🔒 Secure checkout</span>
+      <span>📦 Instant download</span>
+      <span>🪟 Windows 10 &amp; 11</span>
+      <span>⚡ No installation</span>
+      <span>🔁 Lifetime updates</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  © 2025 Notification Manager · Built by a developer, for developers · Python + .NET 8 + Windows Notification API
+</footer>
+
+<script>
+// Scroll reveal
+const els = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('in'), i * 80);
+      obs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.08 });
+els.forEach(el => obs.observe(el));
+
+// Animate terminal lines sequentially on load
+const lines = document.querySelectorAll('.terminal-body .t-line');
+lines.forEach((line, i) => {
+  line.style.opacity = '0';
+  line.style.transition = 'opacity 0.3s ease';
+  setTimeout(() => { line.style.opacity = '1'; }, 300 + i * 120);
+});
+</script>
+</body>
+</html>
