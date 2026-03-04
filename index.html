@@ -867,6 +867,134 @@ h2 {
 
 .buy-meta span { display: flex; align-items: center; gap: 0.3rem; }
 
+/* ====== CONTACT SECTION ====== */
+.contact-section {
+  padding: 6rem 2rem;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.contact-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.contact-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  text-decoration: none;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.contact-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.contact-card.whatsapp::before {
+  background: radial-gradient(ellipse at left, rgba(37,211,102,0.06) 0%, transparent 70%);
+}
+
+.contact-card.email::before {
+  background: radial-gradient(ellipse at left, rgba(77,159,255,0.06) 0%, transparent 70%);
+}
+
+.contact-card:hover { transform: translateY(-2px); }
+.contact-card.whatsapp:hover { border-color: rgba(37,211,102,0.3); box-shadow: 0 8px 32px rgba(37,211,102,0.08); }
+.contact-card.email:hover { border-color: rgba(77,159,255,0.3); box-shadow: 0 8px 32px rgba(77,159,255,0.08); }
+.contact-card:hover::before { opacity: 1; }
+
+.contact-icon-wrap {
+  width: 52px; height: 52px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.contact-card.whatsapp .contact-icon-wrap {
+  background: rgba(37,211,102,0.1);
+  border: 1px solid rgba(37,211,102,0.2);
+}
+
+.contact-card.email .contact-icon-wrap {
+  background: rgba(77,159,255,0.1);
+  border: 1px solid rgba(77,159,255,0.2);
+}
+
+.contact-info {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.contact-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.contact-card.whatsapp .contact-label { color: rgba(37,211,102,0.6); }
+.contact-card.email .contact-label { color: rgba(77,159,255,0.6); }
+
+.contact-value {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.contact-sub {
+  font-size: 0.78rem;
+  color: var(--muted2);
+}
+
+.contact-arrow {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.2s;
+}
+
+.contact-card.whatsapp .contact-arrow { color: rgba(37,211,102,0.5); }
+.contact-card.email .contact-arrow { color: rgba(77,159,255,0.5); }
+.contact-card:hover .contact-arrow { transform: translateX(4px); }
+
+.contact-note {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 /* ====== FOOTER ====== */
 footer {
   border-top: 1px solid var(--border);
@@ -893,7 +1021,7 @@ footer {
 
 /* RESPONSIVE */
 @media (max-width: 768px) {
-  .config-grid, .demo-grid, .compare-table { grid-template-columns: 1fr; }
+  .config-grid, .demo-grid, .compare-table, .contact-grid { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr 1fr; }
   .stats-grid { grid-template-columns: 1fr; }
   .flow-step { grid-template-columns: 1fr; }
@@ -916,6 +1044,7 @@ footer {
     <li><a href="#how">How It Works</a></li>
     <li><a href="#config">Setup</a></li>
     <li><a href="#features">Features</a></li>
+    <li><a href="#contact">Contact</a></li>
     <li><a href="#buy">Pricing</a></li>
   </ul>
   <a href="#buy" class="nav-buy">Get it — $9</a>
@@ -939,7 +1068,7 @@ footer {
   </p>
 
   <div class="hero-cta-group">
-    <a href="#buy" class="btn-main">⬇ Download Notification Manager</a>
+    <a href="#buy" class="btn-main" onclick="openModal(event)">⬇ Download Notification Manager</a>
     <a href="#how" class="btn-ghost">See the Tech →</a>
   </div>
 
@@ -1335,7 +1464,7 @@ footer {
     </div>
     <br>
 
-    <a href="#" class="btn-main" style="font-size:1rem;padding:1rem 2.5rem;">
+    <a href="#" onclick="openModal(event)" class="btn-main" style="font-size:1rem;padding:1rem 2.5rem;">
       ⬇ Download Notification_Manager.exe
     </a>
 
@@ -1349,12 +1478,213 @@ footer {
   </div>
 </section>
 
+<!-- CONTACT SECTION -->
+<section class="contact-section" id="contact">
+  <div class="contact-inner">
+    <div class="section-badge reveal">Get In Touch</div>
+    <h2 class="reveal">Questions? Just reach out.</h2>
+    <p class="section-sub reveal">Have a question before buying, need help with setup, or want a custom build? Drop a message — typically reply within a few hours.</p>
+
+    <div class="contact-grid reveal">
+
+      <a href="https://wa.me/919929321602" target="_blank" rel="noopener noreferrer" class="contact-card whatsapp">
+        <div class="contact-icon-wrap">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/>
+          </svg>
+        </div>
+        <div class="contact-info">
+          <div class="contact-label">WhatsApp</div>
+          <div class="contact-value">+91 99293 21602</div>
+          <div class="contact-sub">Message me directly — quick replies</div>
+        </div>
+        <div class="contact-arrow">→</div>
+      </a>
+
+      <a href="mailto:official.abhishant.kumar@gmail.com" class="contact-card email">
+        <div class="contact-icon-wrap">
+          <svg width="26" height="22" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 0H2C.9 0 0 .9 0 2v16c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm0 4l-10 6.5L2 4V2l10 6.5L22 2v2z" fill="#4d9fff"/>
+          </svg>
+        </div>
+        <div class="contact-info">
+          <div class="contact-label">Email</div>
+          <div class="contact-value">official.abhishant.kumar</div>
+          <div class="contact-sub">@gmail.com · For detailed queries</div>
+        </div>
+        <div class="contact-arrow">→</div>
+      </a>
+
+    </div>
+
+    <div class="contact-note reveal">
+      🔒 Your contact info is never stored or shared · Response time: usually within a few hours
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD MODAL -->
+<div id="downloadModal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(8px);
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    background:var(--panel);
+    border:1px solid rgba(0,212,170,0.2);
+    border-radius:12px;
+    padding:2.5rem;
+    max-width:480px;
+    width:calc(100% - 2rem);
+    position:relative;
+    box-shadow:0 0 80px rgba(0,212,170,0.08), 0 24px 64px rgba(0,0,0,0.6);
+    animation:modalIn 0.25s ease both;
+  ">
+    <!-- Close -->
+    <button onclick="closeModal()" style="
+      position:absolute;top:1rem;right:1rem;
+      background:none;border:none;color:var(--muted);
+      font-size:1.2rem;cursor:pointer;line-height:1;
+      font-family:var(--mono);
+      transition:color 0.2s;
+    " onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+
+    <!-- Header -->
+    <div style="margin-bottom:1.8rem;">
+      <div style="
+        font-family:var(--mono);font-size:0.65rem;
+        letter-spacing:0.15em;text-transform:uppercase;
+        color:var(--green);margin-bottom:0.7rem;
+        display:flex;align-items:center;gap:0.5rem;
+      ">
+        <span style="width:5px;height:5px;background:var(--green);border-radius:50%;display:inline-block;animation:blink 1.5s infinite;"></span>
+        Ready to Download
+      </div>
+      <div style="
+        font-family:'Clash Display','Epilogue',sans-serif;
+        font-size:1.4rem;font-weight:700;
+        letter-spacing:-0.02em;line-height:1.2;
+        margin-bottom:0.5rem;
+      ">Get Notification_Manager.exe</div>
+      <div style="font-size:0.85rem;color:var(--muted2);font-weight:300;">
+        Reach out via WhatsApp or Email — I'll send the download link instantly.
+      </div>
+    </div>
+
+    <!-- Terminal line -->
+    <div style="
+      background:#080c12;border:1px solid var(--border);
+      border-radius:6px;padding:0.7rem 1rem;
+      font-family:var(--mono);font-size:0.75rem;
+      color:var(--muted);margin-bottom:1.8rem;
+      line-height:1.8;
+    ">
+      <span style="color:var(--green);">$</span> awaiting_contact...<br>
+      <span style="color:var(--muted);">↳ send_download_link() on receipt</span>
+    </div>
+
+    <!-- WhatsApp Button -->
+    <a href="https://wa.me/919929321602?text=Hi%2C%20I%20want%20to%20download%20Notification_Manager.exe" target="_blank" rel="noopener noreferrer" style="
+      display:flex;align-items:center;gap:1rem;
+      background:rgba(37,211,102,0.07);
+      border:1px solid rgba(37,211,102,0.25);
+      border-radius:8px;padding:1rem 1.3rem;
+      text-decoration:none;
+      transition:all 0.2s;
+      margin-bottom:0.75rem;
+    "
+    onmouseover="this.style.background='rgba(37,211,102,0.13)';this.style.borderColor='rgba(37,211,102,0.45)';this.style.transform='translateY(-1px)'"
+    onmouseout="this.style.background='rgba(37,211,102,0.07)';this.style.borderColor='rgba(37,211,102,0.25)';this.style.transform='translateY(0)'"
+    >
+      <div style="
+        width:40px;height:40px;border-radius:8px;flex-shrink:0;
+        background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);
+        display:flex;align-items:center;justify-content:center;
+      ">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:var(--mono);font-size:0.65rem;color:rgba(37,211,102,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.2rem;">WhatsApp</div>
+        <div style="font-size:0.9rem;color:var(--text);font-weight:500;">Message on WhatsApp</div>
+        <div style="font-size:0.75rem;color:var(--muted2);">+91 99293 21602 · Fastest response</div>
+      </div>
+      <div style="font-family:var(--mono);color:rgba(37,211,102,0.5);font-size:1rem;">→</div>
+    </a>
+
+    <!-- Email Button -->
+    <a href="mailto:official.abhishant.kumar@gmail.com?subject=Download%20Request%3A%20Notification_Manager.exe&body=Hi%2C%20I%27d%20like%20to%20purchase%20and%20download%20Notification_Manager.exe.%20Please%20send%20me%20the%20download%20link." style="
+      display:flex;align-items:center;gap:1rem;
+      background:rgba(77,159,255,0.07);
+      border:1px solid rgba(77,159,255,0.2);
+      border-radius:8px;padding:1rem 1.3rem;
+      text-decoration:none;
+      transition:all 0.2s;
+    "
+    onmouseover="this.style.background='rgba(77,159,255,0.13)';this.style.borderColor='rgba(77,159,255,0.4)';this.style.transform='translateY(-1px)'"
+    onmouseout="this.style.background='rgba(77,159,255,0.07)';this.style.borderColor='rgba(77,159,255,0.2)';this.style.transform='translateY(0)'"
+    >
+      <div style="
+        width:40px;height:40px;border-radius:8px;flex-shrink:0;
+        background:rgba(77,159,255,0.1);border:1px solid rgba(77,159,255,0.2);
+        display:flex;align-items:center;justify-content:center;
+      ">
+        <svg width="22" height="18" viewBox="0 0 24 20" fill="none"><path d="M22 0H2C.9 0 0 .9 0 2v16c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm0 4l-10 6.5L2 4V2l10 6.5L22 2v2z" fill="#4d9fff"/></svg>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:var(--mono);font-size:0.65rem;color:rgba(77,159,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.2rem;">Email</div>
+        <div style="font-size:0.9rem;color:var(--text);font-weight:500;">Send an Email</div>
+        <div style="font-size:0.75rem;color:var(--muted2);">official.abhishant.kumar@gmail.com</div>
+      </div>
+      <div style="font-family:var(--mono);color:rgba(77,159,255,0.5);font-size:1rem;">→</div>
+    </a>
+
+    <div style="margin-top:1.2rem;text-align:center;font-family:var(--mono);font-size:0.68rem;color:var(--muted);">
+      🔒 $9 one-time · Instant delivery after payment
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes modalIn {
+  from { opacity:0; transform:scale(0.95) translateY(10px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+</style>
+
 <!-- FOOTER -->
 <footer>
   © 2025 Notification Manager · Built by a developer, for developers · Python + .NET 8 + Windows Notification API
+  &nbsp;·&nbsp;
+  <a href="https://wa.me/919929321602" target="_blank" style="color:var(--muted);text-decoration:none;">WhatsApp</a>
+  &nbsp;·&nbsp;
+  <a href="mailto:official.abhishant.kumar@gmail.com" style="color:var(--muted);text-decoration:none;">Email</a>
 </footer>
 
 <script>
+// Modal
+function openModal(e) {
+  if (e) e.preventDefault();
+  const m = document.getElementById('downloadModal');
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  const m = document.getElementById('downloadModal');
+  m.style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('downloadModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
 // Scroll reveal
 const els = document.querySelectorAll('.reveal');
 const obs = new IntersectionObserver(entries => {

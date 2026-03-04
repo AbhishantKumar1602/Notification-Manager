@@ -1,0 +1,183 @@
+{
+    "generated_at": "2026-02-24T12:10:58.798913+00:00",
+    "wanted": [
+        {
+            "Id": 340879,
+            "Title": "Turn on Windows Firewall",
+            "Subtitle": "Windows Firewall is turned off. Tap or click to turn it on.",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-24T04:40:39.337233+00:00",
+            "ExpiryTime": "2026-02-27T04:40:39.337233+00:00"
+        }
+    ],
+    "unwanted": [
+        {
+            "Id": 340861,
+            "Title": "Energy saver is on",
+            "Subtitle": "",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-23T17:48:16.070648+00:00",
+            "ExpiryTime": "2026-02-26T17:48:16.070648+00:00"
+        },
+        {
+            "Id": 340790,
+            "Title": "Claude responded",
+            "Subtitle": "Let me read the full file carefully before touching anything.Now I have a complete picture of the file. The changes needed are: **Light theme → pe",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-23T16:00:29.553999+00:00",
+            "ExpiryTime": "2026-02-26T16:00:29.553999+00:00"
+        },
+        {
+            "Id": 340786,
+            "Title": "Claude responded",
+            "Subtitle": "Looking at your screenshot, I can see this is a different, more advanced version of the app with Age, Gender, Address, Payment Mode, Paid Amount, Ded",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-23T15:55:35.582811+00:00",
+            "ExpiryTime": "2026-02-26T15:55:35.582811+00:00"
+        },
+        {
+            "Id": 340095,
+            "Title": "57575625",
+            "Subtitle": "Your verification code for Freelancer is 406265",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-23T06:13:51.850260+00:00",
+            "ExpiryTime": "2026-02-26T06:13:51.850260+00:00"
+        },
+        {
+            "Id": 340094,
+            "Title": "Claude responded",
+            "Subtitle": "Now I have a complete picture of the code. Let me make all the requested changes: Settings: Split address → address1, address2, `address",
+            "Attribution": "via claude.ai",
+            "ArrivalTime": "2026-02-23T06:12:25.571008+00:00",
+            "ExpiryTime": "2026-02-26T06:12:25.571008+00:00"
+        },
+        {
+            "Id": 340085,
+            "Title": "59039465",
+            "Subtitle": "PayPal: 147719 is your code for login. Don't share your code.",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-23T06:09:10.505535+00:00",
+            "ExpiryTime": "2026-02-26T06:09:10.505535+00:00"
+        },
+        {
+            "Id": 339782,
+            "Title": "Claude responded",
+            "Subtitle": "Let me read that file first:Now I can see the full design language — dark theme with #0f1117 background, #6c63ff purple accent, card-based layout",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-22T15:21:29.077438+00:00",
+            "ExpiryTime": "2026-02-25T15:21:29.077438+00:00"
+        },
+        {
+            "Id": 339778,
+            "Title": "Claude responded",
+            "Subtitle": "Now I have the full picture. I'll rebuild the billing tab — remove live preview, add a \"Preview Invoice\" button that opens a full-screen popup dialog,",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-22T15:16:24.518761+00:00",
+            "ExpiryTime": "2026-02-25T15:16:24.518761+00:00"
+        },
+        {
+            "Id": 339776,
+            "Title": "Claude responded",
+            "Subtitle": "Good, now let me build the complete upgraded app with product catalogue + dual-copy PDF:Download and replace your file. Here's what's new: --- **💊 P",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-22T15:12:43.163976+00:00",
+            "ExpiryTime": "2026-02-25T15:12:43.163976+00:00"
+        },
+        {
+            "Id": 339775,
+            "Title": "Claude responded",
+            "Subtitle": "Got it! Simpler, cleaner layout. Let me rebuild it exactly as you described.Download and replace your old file. Here's exactly what changed: **Items",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-22T15:07:48.406103+00:00",
+            "ExpiryTime": "2026-02-25T15:07:48.406103+00:00"
+        },
+        {
+            "Id": 339734,
+            "Title": "Claude responded",
+            "Subtitle": "Simple fix! PyQt6 isn't installed yet. Run this in your PowerShell: `powershell C:/Users/Abhishant/AppData/Local/Programs/Python/Python313/python.",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-22T14:11:21.491362+00:00",
+            "ExpiryTime": "2026-02-25T14:11:21.491362+00:00"
+        },
+        {
+            "Id": 339278,
+            "Title": "jio_promo_gqzcnl7w_agent@rbm.goog",
+            "Subtitle": "",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T06:01:35.011017+00:00",
+            "ExpiryTime": "2026-02-25T06:01:35.011017+00:00"
+        },
+        {
+            "Id": 339223,
+            "Title": "JK-AXISBK-S",
+            "Subtitle": "111983 is the OTP to view Debit Card details. Valid for 2 minutes. Do not share with anyone. Call 18001035577 if not requested by you - Axis Bank",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T05:12:36.072760+00:00",
+            "ExpiryTime": "2026-02-25T05:12:36.072760+00:00"
+        },
+        {
+            "Id": 339217,
+            "Title": "AD-AXISBK-S",
+            "Subtitle": "509249 is the OTP to view Debit Card details. Valid for 2 minutes. Do not share with anyone. Call 18001035577 if not requested by you - Axis Bank",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T05:11:42.146653+00:00",
+            "ExpiryTime": "2026-02-25T05:11:42.146653+00:00"
+        },
+        {
+            "Id": 339152,
+            "Title": "Claude responded",
+            "Subtitle": "Based on your full profile, here's exactly what to write: --- What do you do? (One line) > QA Automation Engineer & Full-Stack Developer — I b",
+            "Attribution": "claude.ai",
+            "ArrivalTime": "2026-02-22T04:55:10.182964+00:00",
+            "ExpiryTime": "2026-02-25T04:55:10.182964+00:00"
+        },
+        {
+            "Id": 339031,
+            "Title": "AD-PNBSMS-T",
+            "Subtitle": "Dear Customer, 442751 is your One Time Password for completing your transaction which is valid for 5 min from now. Do not disclose OTP. If not done by you, report on 18001802222 as FRAUD.-PNB",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T04:36:10.583819+00:00",
+            "ExpiryTime": "2026-02-25T04:36:10.583819+00:00"
+        },
+        {
+            "Id": 339021,
+            "Title": "AX-PNBSMS-T",
+            "Subtitle": "810282 is OTP for MBS Activation, valid for 5 min. Do not disclose OTP. If not done by u, REPORT on 18001800/18002021 -PNB pGgR7mf7yCY",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T04:34:16.691740+00:00",
+            "ExpiryTime": "2026-02-25T04:34:16.691740+00:00"
+        },
+        {
+            "Id": 339015,
+            "Title": "AX-PNBSMS-T",
+            "Subtitle": "726731 is OTP for MBS Activation, valid for 5 min. Do not disclose OTP. If not done by u, REPORT on 18001800/18002021 -PNB pGgR7mf7yCY",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T04:34:12.451949+00:00",
+            "ExpiryTime": "2026-02-25T04:34:12.451949+00:00"
+        },
+        {
+            "Id": 338989,
+            "Title": "AX-PNBSMS-T",
+            "Subtitle": "836758 is OTP for MBS Activation, valid for 5 min. Do not disclose OTP. If not done by u, REPORT on 18001800/18002021 -PNB pGgR7mf7yCY",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-22T04:32:28.809783+00:00",
+            "ExpiryTime": "2026-02-25T04:32:28.809783+00:00"
+        },
+        {
+            "Id": 338918,
+            "Title": "File received",
+            "Subtitle": "Licence .jpg was received from iQOO Z7 Pro 5G.",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-21T21:43:05.317571+00:00",
+            "ExpiryTime": "2026-02-24T21:43:05.317571+00:00"
+        },
+        {
+            "Id": 338896,
+            "Title": "File received",
+            "Subtitle": "Licence was received from iQOO Z7 Pro 5G.",
+            "Attribution": "N/A",
+            "ArrivalTime": "2026-02-21T21:41:45.713969+00:00",
+            "ExpiryTime": "2026-02-24T21:41:45.713969+00:00"
+        }
+    ]
+}

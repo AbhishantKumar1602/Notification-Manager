@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("dismiss_notif")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2f6fdbdd4122d7413612c9cccf9f2029cd22200d")]
 [assembly: System.Reflection.AssemblyProductAttribute("dismiss_notif")]
 [assembly: System.Reflection.AssemblyTitleAttribute("dismiss_notif")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
