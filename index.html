@@ -3,1036 +3,348 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notification Manager — Windows Notification Cleaner</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Clash+Display:wght@400;500;600;700&family=Epilogue:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Notification Manager — Kill the Noise. Keep the Signal.</title>
+<meta name="description" content="Automatically dismisses every unwanted Windows notification. Direct database access. $49 one-time. No subscription.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #06080d;
-  --panel: #0b0f17;
-  --panel2: #101520;
-  --border: rgba(255,255,255,0.06);
-  --border-glow: rgba(0,212,170,0.25);
-  --green: #00d4aa;
-  --green-dim: rgba(0,212,170,0.08);
-  --red: #ff4566;
-  --red-dim: rgba(255,69,102,0.08);
-  --yellow: #f5c518;
-  --blue: #4d9fff;
-  --text: #dce5f0;
-  --muted: #576070;
-  --muted2: #8892a0;
-  --mono: 'JetBrains Mono', monospace;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Epilogue', sans-serif;
-  font-size: 16px;
-  line-height: 1.65;
-  overflow-x: hidden;
-}
-
-/* SCANLINE OVERLAY */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.03) 2px,
-    rgba(0,0,0,0.03) 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* NAV */
-nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 200;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2.5rem;
-  background: rgba(6,8,13,0.9);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--border);
-}
-
-.logo {
-  font-family: var(--mono);
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--green);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.logo-dot {
-  width: 8px; height: 8px;
-  background: var(--green);
-  border-radius: 50%;
-  animation: blink 2s infinite;
-}
-
-@keyframes blink {
-  0%,100% { opacity: 1; }
-  50% { opacity: 0.2; }
-}
-
-.nav-links {
-  display: flex;
-  gap: 2rem;
-  list-style: none;
-  font-size: 0.82rem;
-  color: var(--muted2);
-}
-
-.nav-links a {
-  color: var(--muted2);
-  text-decoration: none;
-  transition: color 0.2s;
-  font-family: var(--mono);
-}
-
-.nav-links a:hover { color: var(--green); }
-
-.nav-buy {
-  background: var(--green);
-  color: #000;
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 0.8rem;
-  padding: 0.5rem 1.3rem;
-  border-radius: 4px;
-  text-decoration: none;
-  transition: opacity 0.2s, transform 0.2s;
-}
-
-.nav-buy:hover { opacity: 0.85; transform: translateY(-1px); }
-
-/* ====== HERO ====== */
-.hero {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 7rem 2rem 4rem;
-  position: relative;
-}
-
-.hero-bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border) 1px, transparent 1px);
-  background-size: 50px 50px;
-  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
-  pointer-events: none;
-}
-
-.hero-orb {
-  position: absolute;
-  width: 600px; height: 600px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,212,170,0.06) 0%, transparent 65%);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid rgba(0,212,170,0.3);
-  background: rgba(0,212,170,0.05);
-  color: var(--green);
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 2px;
-  margin-bottom: 2rem;
-  letter-spacing: 0.08em;
-  animation: fadeUp 0.5s ease both;
-}
-
-.status-chip::before {
-  content: '';
-  width: 5px; height: 5px;
-  background: var(--green);
-  border-radius: 50%;
-  animation: blink 1.5s infinite;
-}
-
-h1 {
-  font-family: 'Clash Display', 'Epilogue', sans-serif;
-  font-size: clamp(2.6rem, 5.5vw, 4.5rem);
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.04em;
-  max-width: 780px;
-  animation: fadeUp 0.5s 0.1s ease both;
-}
-
-h1 em {
-  font-style: normal;
-  color: var(--green);
-  position: relative;
-}
-
-h1 .kill {
-  color: var(--red);
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-.hero-desc {
-  margin: 1.5rem auto 0;
-  max-width: 540px;
-  color: var(--muted2);
-  font-size: 1.05rem;
-  font-weight: 300;
-  animation: fadeUp 0.5s 0.2s ease both;
-}
-
-.hero-desc strong { color: var(--text); font-weight: 500; }
-
-.hero-cta-group {
-  margin-top: 2.5rem;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  animation: fadeUp 0.5s 0.3s ease both;
-}
-
-.btn-main {
-  background: var(--green);
-  color: #000;
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 0.9rem;
-  padding: 0.85rem 2rem;
-  border-radius: 4px;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 0 40px rgba(0,212,170,0.2);
-  transition: all 0.2s;
-}
-
-.btn-main:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(0,212,170,0.35); }
-
-.btn-ghost {
-  border: 1px solid var(--border);
-  color: var(--muted2);
-  font-family: var(--mono);
-  font-size: 0.88rem;
-  padding: 0.85rem 1.8rem;
-  border-radius: 4px;
-  text-decoration: none;
-  transition: all 0.2s;
-  background: var(--panel);
-}
-
-.btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
-
-.one-time-note {
-  margin-top: 1rem;
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--muted);
-  animation: fadeUp 0.5s 0.4s ease both;
-}
-
-.one-time-note span { color: var(--green); }
-
-/* ====== LIVE TERMINAL ====== */
-.terminal-wrap {
-  margin-top: 4rem;
-  width: 100%;
-  max-width: 680px;
-  animation: fadeUp 0.6s 0.5s ease both;
-}
-
-.terminal {
-  background: #080c12;
-  border: 1px solid rgba(0,212,170,0.15);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 0 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,170,0.05);
-}
-
-.terminal-bar {
-  background: #0e1420;
-  padding: 0.6rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.t-dot { width: 10px; height: 10px; border-radius: 50%; }
-.t-dot.r { background: #ff5f57; }
-.t-dot.y { background: #febc2e; }
-.t-dot.g { background: #28c840; }
-
-.t-title {
-  flex: 1;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-.terminal-body {
-  padding: 1.2rem 1.5rem;
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  line-height: 1.8;
-  min-height: 240px;
-}
-
-.t-line { display: block; }
-.t-green { color: var(--green); }
-.t-red { color: var(--red); }
-.t-yellow { color: var(--yellow); }
-.t-blue { color: var(--blue); }
-.t-muted { color: var(--muted); }
-.t-white { color: var(--text); }
-
-.cursor {
-  display: inline-block;
-  width: 8px; height: 14px;
-  background: var(--green);
-  vertical-align: middle;
-  animation: blink 1s infinite;
-  margin-left: 2px;
-}
-
-/* ====== HOW IT ACTUALLY WORKS ====== */
-.section {
-  padding: 6rem 2rem;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.section-badge {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--green);
-  border: 1px solid rgba(0,212,170,0.2);
-  padding: 0.25rem 0.7rem;
-  border-radius: 2px;
-  margin-bottom: 1.2rem;
-}
-
-h2 {
-  font-family: 'Clash Display', 'Epilogue', sans-serif;
-  font-size: clamp(1.8rem, 3vw, 2.8rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin-bottom: 1rem;
-}
-
-.section-sub {
-  color: var(--muted2);
-  max-width: 500px;
-  font-weight: 300;
-  font-size: 0.95rem;
-}
-
-/* TECH FLOW */
-.tech-flow {
-  margin-top: 3.5rem;
-  display: grid;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.flow-step {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  background: var(--panel);
-  transition: background 0.2s;
-}
-
-.flow-step:hover { background: var(--panel2); }
-
-.flow-num {
-  background: var(--panel2);
-  border-right: 1px solid var(--border);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  justify-content: center;
-}
-
-.flow-step-label {
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  color: var(--muted);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.flow-step-num {
-  font-family: var(--mono);
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--green);
-  line-height: 1;
-  opacity: 0.4;
-}
-
-.flow-func {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--blue);
-}
-
-.flow-content {
-  padding: 1.5rem 2rem;
-}
-
-.flow-title {
-  font-family: 'Clash Display', 'Epilogue', sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  color: var(--text);
-}
-
-.flow-desc {
-  font-size: 0.88rem;
-  color: var(--muted2);
-  line-height: 1.7;
-}
-
-.flow-desc .mono {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  color: var(--blue);
-  background: rgba(77,159,255,0.08);
-  border: 1px solid rgba(77,159,255,0.15);
-  border-radius: 3px;
-  padding: 0.05rem 0.4rem;
-}
-
-.flow-desc .path {
-  font-family: var(--mono);
-  font-size: 0.75rem;
-  color: var(--yellow);
-}
-
-/* ====== DIVIDER ====== */
-.divider {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: 0;
-}
-
-/* ====== FILE CONFIG SECTION ====== */
-.config-section {
-  padding: 6rem 2rem;
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.config-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.config-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-top: 3rem;
-}
-
-.file-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.2s;
-}
-
-.file-card:hover { border-color: rgba(0,212,170,0.25); }
-
-.file-card-header {
-  background: var(--panel2);
-  padding: 0.7rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.file-icon { font-size: 0.9rem; }
-
-.file-name {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  color: var(--yellow);
-}
-
-.file-badge {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  color: var(--muted);
-  background: var(--border);
-  padding: 0.15rem 0.5rem;
-  border-radius: 2px;
-}
-
-.file-body {
-  padding: 1rem;
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  line-height: 2;
-}
-
-.file-comment { color: var(--muted); }
-.file-entry-green { color: var(--green); }
-.file-entry-red { color: var(--red); opacity: 0.5; text-decoration: line-through; }
-
-.config-note {
-  margin-top: 1.5rem;
-  background: rgba(0,212,170,0.04);
-  border: 1px solid rgba(0,212,170,0.12);
-  border-radius: 6px;
-  padding: 1rem 1.3rem;
-  font-size: 0.85rem;
-  color: var(--muted2);
-  line-height: 1.7;
-}
-
-.config-note strong { color: var(--green); font-weight: 500; }
-
-/* ====== NOTIFICATION DEMO ====== */
-.demo-section {
-  padding: 6rem 2rem;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.demo-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  margin-top: 3rem;
-  align-items: start;
-}
-
-.demo-col-label {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.demo-col-label.bad { color: var(--red); }
-.demo-col-label.good { color: var(--green); }
-
-.notif-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 0.8rem 1rem;
-  margin-bottom: 0.6rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  font-size: 0.84rem;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s;
-}
-
-.notif-card.bad {
-  border-color: rgba(255,69,102,0.15);
-  animation: strikeThrough 3s ease infinite;
-}
-
-@keyframes strikeThrough {
-  0%, 60% { opacity: 1; transform: translateX(0); }
-  80% { opacity: 0.3; transform: translateX(15px); border-color: rgba(255,69,102,0.4); }
-  85% { opacity: 0; transform: translateX(60px); }
-  86% { opacity: 0; transform: translateX(-10px); }
-  100% { opacity: 1; transform: translateX(0); }
-}
-
-.notif-card.bad:nth-child(2) { animation-delay: 0.8s; }
-.notif-card.bad:nth-child(3) { animation-delay: 1.6s; }
-.notif-card.bad:nth-child(4) { animation-delay: 2.4s; }
-
-.notif-card.good { border-color: rgba(0,212,170,0.15); }
-
-.n-icon {
-  width: 30px; height: 30px;
-  border-radius: 5px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.n-icon.spam { background: rgba(255,69,102,0.1); }
-.n-icon.keep { background: rgba(0,212,170,0.08); }
-
-.n-body { flex: 1; }
-.n-app { font-size: 0.68rem; color: var(--muted); font-family: var(--mono); margin-bottom: 0.1rem; }
-.n-msg { color: var(--text); font-size: 0.84rem; }
-
-.n-tag {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  font-weight: 700;
-  padding: 0.15rem 0.5rem;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.n-tag.blocked { background: rgba(255,69,102,0.12); color: var(--red); border: 1px solid rgba(255,69,102,0.25); }
-.n-tag.kept { background: rgba(0,212,170,0.08); color: var(--green); border: 1px solid rgba(0,212,170,0.2); }
-
-/* ====== FEATURES ====== */
-.features-section {
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 6rem 2rem;
-}
-
-.features-inner { max-width: 1100px; margin: 0 auto; }
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  margin-top: 3rem;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.feat {
-  background: var(--panel);
-  padding: 1.8rem;
-  transition: background 0.2s;
-}
-
-.feat:hover { background: var(--panel2); }
-
-.feat-icon { font-size: 1.6rem; margin-bottom: 1rem; display: block; }
-
-.feat-title {
-  font-family: 'Clash Display', 'Epilogue', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.feat-desc { font-size: 0.84rem; color: var(--muted2); line-height: 1.6; }
-
-.feat-tag {
-  display: inline-block;
-  margin-top: 0.8rem;
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  color: var(--green);
-  background: var(--green-dim);
-  border: 1px solid rgba(0,212,170,0.15);
-  padding: 0.15rem 0.5rem;
-  border-radius: 2px;
-}
-
-/* ====== AUDIENCE ====== */
-.audience-section {
-  padding: 6rem 2rem;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.audience-list {
-  margin-top: 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.aud-row {
-  display: grid;
-  grid-template-columns: 60px 180px 1fr;
-  align-items: center;
-  background: var(--panel);
-  padding: 1.4rem 1.5rem;
-  gap: 1.5rem;
-  transition: background 0.2s;
-}
-
-.aud-row:hover { background: var(--panel2); }
-
-.aud-emoji { font-size: 1.8rem; }
-
-.aud-type {
-  font-family: 'Clash Display', 'Epilogue', sans-serif;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.aud-detail { font-size: 0.86rem; color: var(--muted2); line-height: 1.6; }
-
-/* ====== STATS ====== */
-.stats-section {
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 6rem 2rem;
-}
-
-.stats-inner { max-width: 1100px; margin: 0 auto; }
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1px;
-  margin-top: 3rem;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.stat-box {
-  background: var(--bg);
-  padding: 2.5rem 2rem;
-  text-align: center;
-}
-
-.stat-value {
-  font-family: var(--mono);
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 0.5rem;
-}
-
-.stat-value.g { color: var(--green); }
-.stat-value.r { color: var(--red); }
-.stat-value.b { color: var(--blue); }
-
-.stat-label { font-size: 0.82rem; color: var(--muted2); max-width: 160px; margin: 0 auto; line-height: 1.5; }
-
-.compare-table {
-  margin-top: 2rem;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.c-col {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.c-col-head {
-  padding: 1rem 1.3rem;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
-}
-
-.c-col-head.bad { color: var(--red); background: var(--red-dim); }
-.c-col-head.good { color: var(--green); background: var(--green-dim); }
-
-.c-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.7rem 1.3rem;
-  font-size: 0.84rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.c-row:last-child { border-bottom: none; }
-.c-label { color: var(--muted2); }
-.c-val { font-family: var(--mono); font-weight: 600; }
-.c-col.bad .c-val { color: var(--red); }
-.c-col.good .c-val { color: var(--green); }
-
-.yearly-banner {
-  margin-top: 1.5rem;
-  background: linear-gradient(135deg, rgba(0,212,170,0.06), rgba(77,159,255,0.06));
-  border: 1px solid rgba(0,212,170,0.15);
-  border-radius: 8px;
-  padding: 2.5rem;
-  text-align: center;
-}
-
-.yearly-big {
-  font-family: var(--mono);
-  font-size: 4rem;
-  font-weight: 700;
-  color: var(--green);
-  line-height: 1;
-}
-
-.yearly-sub { color: var(--muted2); margin-top: 0.6rem; font-size: 0.9rem; font-weight: 300; }
-
-/* ====== BUY ====== */
-.buy-section {
-  padding: 7rem 2rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.buy-glow {
-  position: absolute;
-  width: 700px; height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(0,212,170,0.06) 0%, transparent 70%);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.buy-section h2 { font-size: clamp(2.2rem, 4vw, 3.5rem); margin-bottom: 1rem; }
-.buy-section p { color: var(--muted2); max-width: 460px; margin: 0 auto 2rem; font-weight: 300; }
-
-.price-row {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  margin-bottom: 2rem;
-}
-
-.price-num {
-  font-family: var(--mono);
-  font-size: 4rem;
-  font-weight: 700;
-  color: var(--green);
-  line-height: 1;
-}
-
-.price-label { color: var(--muted); font-family: var(--mono); font-size: 0.9rem; }
-
-.buy-meta {
-  margin-top: 1.2rem;
-  display: flex;
-  gap: 1.5rem;
-  justify-content: center;
-  flex-wrap: wrap;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-.buy-meta span { display: flex; align-items: center; gap: 0.3rem; }
-
-/* ====== CONTACT SECTION ====== */
-.contact-section {
-  padding: 6rem 2rem;
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.contact-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.contact-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-top: 3rem;
-}
-
-.contact-card {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  text-decoration: none;
-  transition: all 0.25s;
-  position: relative;
-  overflow: hidden;
-}
-
-.contact-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-
-.contact-card.whatsapp::before {
-  background: radial-gradient(ellipse at left, rgba(37,211,102,0.06) 0%, transparent 70%);
-}
-
-.contact-card.email::before {
-  background: radial-gradient(ellipse at left, rgba(77,159,255,0.06) 0%, transparent 70%);
-}
-
-.contact-card:hover { transform: translateY(-2px); }
-.contact-card.whatsapp:hover { border-color: rgba(37,211,102,0.3); box-shadow: 0 8px 32px rgba(37,211,102,0.08); }
-.contact-card.email:hover { border-color: rgba(77,159,255,0.3); box-shadow: 0 8px 32px rgba(77,159,255,0.08); }
-.contact-card:hover::before { opacity: 1; }
-
-.contact-icon-wrap {
-  width: 52px; height: 52px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 1;
-}
-
-.contact-card.whatsapp .contact-icon-wrap {
-  background: rgba(37,211,102,0.1);
-  border: 1px solid rgba(37,211,102,0.2);
-}
-
-.contact-card.email .contact-icon-wrap {
-  background: rgba(77,159,255,0.1);
-  border: 1px solid rgba(77,159,255,0.2);
-}
-
-.contact-info {
-  flex: 1;
-  position: relative;
-  z-index: 1;
-}
-
-.contact-label {
-  font-family: var(--mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.3rem;
-}
-
-.contact-card.whatsapp .contact-label { color: rgba(37,211,102,0.6); }
-.contact-card.email .contact-label { color: rgba(77,159,255,0.6); }
-
-.contact-value {
-  font-family: var(--mono);
-  font-size: 0.92rem;
-  font-weight: 500;
-  color: var(--text);
-  margin-bottom: 0.3rem;
-}
-
-.contact-sub {
-  font-size: 0.78rem;
-  color: var(--muted2);
-}
-
-.contact-arrow {
-  font-family: var(--mono);
-  font-size: 1.1rem;
-  position: relative;
-  z-index: 1;
-  transition: transform 0.2s;
-}
-
-.contact-card.whatsapp .contact-arrow { color: rgba(37,211,102,0.5); }
-.contact-card.email .contact-arrow { color: rgba(77,159,255,0.5); }
-.contact-card:hover .contact-arrow { transform: translateX(4px); }
-
-.contact-note {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-/* ====== FOOTER ====== */
-footer {
-  border-top: 1px solid var(--border);
-  padding: 1.8rem 2rem;
-  text-align: center;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--muted);
-}
-
-/* ====== ANIMATIONS ====== */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-
-.reveal.in { opacity: 1; transform: translateY(0); }
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  .config-grid, .demo-grid, .compare-table, .contact-grid { grid-template-columns: 1fr; }
-  .features-grid { grid-template-columns: 1fr 1fr; }
-  .stats-grid { grid-template-columns: 1fr; }
-  .flow-step { grid-template-columns: 1fr; }
-  .flow-num { border-right: none; border-bottom: 1px solid var(--border); padding: 1rem 1.5rem; flex-direction: row; gap: 1rem; }
-  .aud-row { grid-template-columns: 40px 1fr; }
-  .aud-type { display: none; }
-  .nav-links { display: none; }
+/* ══════════════════════════════════════
+   NOTIFICATION MANAGER — PREMIUM v4
+   Font sizes bumped, mobile fixed,
+   real data animation added
+══════════════════════════════════════ */
+:root{
+  --bg:#06080d; --bg2:#090c13; --bg3:#0e1520;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --text:#dce8f2; --muted:#4a5568; --muted2:#7a8fa0;
+  --c1:#00e5ff; --c2:#a855f7; --c3:#f97316;
+  --c4:#22d3a4; --c5:#facc15; --c6:#f43f5e;
+  --head:'Syne',sans-serif;
+  --body:'DM Sans',sans-serif;
+  --mono:'Space Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:18px;line-height:1.65;overflow-x:hidden}
+
+/* noise */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.5}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.3}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;justify-content:space-between;align-items:center;padding:0 2.5rem;height:66px;background:rgba(6,8,13,.82);backdrop-filter:blur(28px) saturate(180%);border-bottom:1px solid var(--border)}
+nav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,229,255,.3),transparent)}
+.logo{font-family:var(--mono);font-size:.85rem;font-weight:700;color:var(--c1);display:flex;align-items:center;gap:.5rem}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--c1);box-shadow:0 0 10px var(--c1);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.nav-links{display:flex;gap:2.2rem;list-style:none;font-family:var(--mono);font-size:.78rem}
+.nav-links a{color:var(--muted2);text-decoration:none;transition:color .2s;position:relative}
+.nav-links a::after{content:'';position:absolute;bottom:-3px;left:0;width:0;height:1px;background:var(--c1);transition:width .25s}
+.nav-links a:hover{color:var(--text)} .nav-links a:hover::after{width:100%}
+.nav-buy{font-family:var(--mono);font-size:.78rem;font-weight:700;color:#000;background:var(--c1);padding:.52rem 1.4rem;border-radius:3px;text-decoration:none;transition:all .2s;box-shadow:0 0 20px rgba(0,229,255,.2)}
+.nav-buy:hover{box-shadow:0 0 35px rgba(0,229,255,.4);transform:translateY(-1px)}
+
+/* hamburger */
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px;z-index:210}
+.hamburger span{display:block;width:23px;height:2px;background:var(--text);border-radius:2px;transition:all .3s}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.mobile-menu{display:none;position:fixed;top:66px;left:0;right:0;background:rgba(6,8,13,.97);backdrop-filter:blur(28px);border-bottom:1px solid var(--border);padding:0 1.5rem 1rem;z-index:199;flex-direction:column}
+.mobile-menu.open{display:flex}
+.mobile-menu li{list-style:none;border-bottom:1px solid var(--border)}
+.mobile-menu li:last-child{border-bottom:none}
+.mobile-menu a{display:block;padding:1.1rem 0;font-family:var(--mono);font-size:.95rem;color:var(--muted2);text-decoration:none;transition:color .2s}
+.mobile-menu a:hover{color:var(--c1)}
+.mobile-buy-btn{display:block;margin-top:.8rem;text-align:center;background:var(--c1);color:#000;font-family:var(--mono);font-weight:700;padding:.8rem;border-radius:4px;text-decoration:none}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:8rem 2rem 5rem;position:relative;z-index:1}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 65% 55% at 50% 0%,rgba(0,229,255,.06) 0%,transparent 70%),radial-gradient(ellipse 40% 35% at 15% 85%,rgba(168,85,247,.05) 0%,transparent 60%),radial-gradient(ellipse 35% 30% at 85% 75%,rgba(34,211,164,.04) 0%,transparent 60%);pointer-events:none}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.024) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.024) 1px,transparent 1px);background-size:52px 52px;mask-image:radial-gradient(ellipse 80% 75% at 50% 40%,black 0%,transparent 100%);pointer-events:none}
+.status-chip{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(0,229,255,.22);background:rgba(0,229,255,.04);color:var(--c1);font-family:var(--mono);font-size:.7rem;padding:.35rem 1rem;border-radius:2px;margin-bottom:2rem;letter-spacing:.12em;animation:fadeUp .5s ease both}
+.status-chip::before{content:'';width:5px;height:5px;background:var(--c1);border-radius:50%;box-shadow:0 0 8px var(--c1);animation:blink 1.5s infinite}
+h1{font-family:var(--head);font-size:clamp(3rem,6vw,5.4rem);font-weight:800;line-height:1.02;letter-spacing:-.045em;max-width:880px;animation:fadeUp .5s .1s ease both}
+h1 em{font-style:normal;color:var(--c1);position:relative}
+h1 em::after{content:'';position:absolute;bottom:.05em;left:-2px;right:-2px;height:2px;background:linear-gradient(90deg,transparent,var(--c1),transparent);opacity:.5;border-radius:2px}
+h1 .kill{color:var(--c6);text-decoration:line-through;opacity:.45}
+.hero-desc{margin:1.8rem auto 0;max-width:560px;color:var(--muted2);font-size:1.12rem;font-weight:300;line-height:1.78;animation:fadeUp .5s .2s ease both}
+.hero-desc strong{color:var(--text);font-weight:500}
+.hero-cta-group{margin-top:2.8rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;animation:fadeUp .5s .3s ease both}
+.btn-main{background:var(--c1);color:#000;font-family:var(--mono);font-weight:700;font-size:.92rem;padding:.95rem 2.4rem;border-radius:3px;text-decoration:none;display:inline-flex;align-items:center;gap:.5rem;box-shadow:0 4px 24px rgba(0,229,255,.2);transition:all .25s;position:relative;overflow:hidden}
+.btn-main::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18) 0%,transparent 60%)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 0 0 3px rgba(0,229,255,.18),0 8px 40px rgba(0,229,255,.35)}
+.btn-ghost{border:1px solid var(--border2);color:var(--muted2);font-family:var(--mono);font-size:.9rem;padding:.95rem 1.8rem;border-radius:3px;text-decoration:none;transition:all .2s;background:rgba(255,255,255,.02)}
+.btn-ghost:hover{color:var(--text);background:rgba(255,255,255,.05);transform:translateY(-1px)}
+.one-time-note{margin-top:1.2rem;font-family:var(--mono);font-size:.75rem;color:var(--muted);animation:fadeUp .5s .4s ease both}
+.one-time-note span{color:var(--c4)}
+
+/* hero stats */
+.hero-stats{display:flex;gap:44px;margin-top:3.5rem;padding:1.5rem 2.8rem;background:var(--bg2);border:1px solid var(--border);border-radius:10px;animation:fadeUp .5s .45s ease both;flex-wrap:wrap;justify-content:center}
+.hero-stats::before{content:'';display:none}
+.hstat{text-align:center}
+.hstat-val{font-family:var(--head);font-size:2rem;font-weight:800;line-height:1}
+.hstat-label{font-family:var(--mono);font-size:.64rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-top:5px}
+
+/* terminal */
+.terminal-wrap{margin-top:3.5rem;width:100%;max-width:720px;animation:fadeUp .7s .55s ease both;position:relative}
+.terminal-wrap::before{content:'';position:absolute;inset:-1px;border-radius:11px;background:linear-gradient(135deg,rgba(0,229,255,.3),rgba(168,85,247,.12),rgba(34,211,164,.18));z-index:-1}
+.terminal{background:#05080e;border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(0,229,255,.04)}
+.terminal-bar{background:#0b1018;padding:.65rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+.t-dot{width:11px;height:11px;border-radius:50%}
+.t-dot.r{background:#ff5f57;box-shadow:0 0 6px rgba(255,95,87,.5)}
+.t-dot.y{background:#febc2e;box-shadow:0 0 6px rgba(254,188,46,.5)}
+.t-dot.g{background:#28c840;box-shadow:0 0 6px rgba(40,200,64,.5)}
+.t-title{flex:1;text-align:center;font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.terminal-body{padding:1.4rem 1.6rem;font-family:var(--mono);font-size:.84rem;line-height:1.9;min-height:240px}
+.t-line{display:block}
+.t-green{color:var(--c4)} .t-red{color:var(--c6)} .t-yellow{color:var(--c5)}
+.t-blue{color:var(--c1)} .t-muted{color:var(--muted)} .t-white{color:var(--text)}
+.cursor{display:inline-block;width:8px;height:14px;background:var(--c1);vertical-align:middle;animation:blink 1s infinite;margin-left:2px;border-radius:1px}
+
+/* ticker */
+.ticker-wrap{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2);overflow:hidden;padding:.75rem 0;position:relative;z-index:1}
+.ticker-track{display:flex;animation:tickerRoll 30s linear infinite;white-space:nowrap}
+@keyframes tickerRoll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.ticker-item{display:inline-flex;align-items:center;gap:.7rem;font-family:var(--mono);font-size:.72rem;color:var(--muted2);padding:0 2.8rem;letter-spacing:.05em}
+.ticker-item .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.ticker-item:nth-child(5n+1) .dot{background:var(--c1);box-shadow:0 0 6px var(--c1)}
+.ticker-item:nth-child(5n+2) .dot{background:var(--c4);box-shadow:0 0 6px var(--c4)}
+.ticker-item:nth-child(5n+3) .dot{background:var(--c2);box-shadow:0 0 6px var(--c2)}
+.ticker-item:nth-child(5n+4) .dot{background:var(--c5);box-shadow:0 0 6px var(--c5)}
+.ticker-item:nth-child(5n+5) .dot{background:var(--c6);box-shadow:0 0 6px var(--c6)}
+
+/* sections */
+.wrap{max-width:1120px;margin:0 auto}
+section{padding:7rem 2rem;position:relative;z-index:1}
+.section-tag{font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.section-tag::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
+h2{font-family:var(--head);font-size:clamp(2.1rem,3.5vw,3.1rem);font-weight:800;letter-spacing:-.04em;line-height:1.07;margin-bottom:1rem}
+.accent-c1{color:var(--c1)} .accent-c2{color:var(--c2)} .accent-c3{color:var(--c3)}
+.accent-c4{color:var(--c4)} .accent-c5{color:var(--c5)} .accent-c6{color:var(--c6)}
+.section-sub{color:var(--muted2);max-width:540px;font-weight:300;font-size:1.05rem;line-height:1.78;margin-bottom:3rem}
+hr.divider{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+
+/* flow steps */
+.tech-flow{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.flow-step{display:grid;grid-template-columns:220px 1fr;background:var(--bg2);transition:background .2s}
+.flow-step:hover{background:var(--bg3)}
+.flow-num{background:var(--bg3);border-right:1px solid var(--border);padding:1.8rem;display:flex;flex-direction:column;gap:.4rem;justify-content:center}
+.flow-step-label{font-family:var(--mono);font-size:.62rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.flow-step-num{font-family:var(--mono);font-size:2.6rem;font-weight:700;color:var(--c1);line-height:1;opacity:.2;transition:opacity .2s}
+.flow-step:hover .flow-step-num{opacity:.65}
+.flow-func{font-family:var(--mono);font-size:.68rem;color:var(--c4)}
+.flow-content{padding:1.8rem 2.2rem}
+.flow-title{font-family:var(--head);font-size:1.12rem;font-weight:700;margin-bottom:.5rem;letter-spacing:-.02em}
+.flow-desc{font-size:.95rem;color:var(--muted2);line-height:1.8}
+.flow-desc .mono{font-family:var(--mono);font-size:.76rem;color:var(--c1);background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.14);border-radius:3px;padding:.04rem .4rem}
+.flow-desc .path{font-family:var(--mono);font-size:.74rem;color:var(--c5)}
+
+/* config section */
+.config-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.config-section::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:700px;height:350px;background:radial-gradient(ellipse,rgba(168,85,247,.05) 0%,transparent 65%);pointer-events:none}
+.config-inner{max-width:1120px;margin:0 auto}
+.config-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.file-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .25s,transform .2s}
+.file-card:hover{transform:translateY(-2px);border-color:rgba(168,85,247,.28)}
+.file-card-header{background:var(--bg3);padding:.75rem 1.1rem;display:flex;align-items:center;gap:.6rem;border-bottom:1px solid var(--border)}
+.file-icon{font-size:.88rem}
+.file-name{font-family:var(--mono);font-size:.78rem;color:var(--c5)}
+.file-badge{margin-left:auto;font-family:var(--mono);font-size:.62rem;color:var(--muted);background:rgba(255,255,255,.04);padding:.12rem .5rem;border-radius:2px;border:1px solid var(--border)}
+.file-body{padding:1.1rem;font-family:var(--mono);font-size:.84rem;line-height:2.1}
+.file-comment{color:var(--muted)} .file-entry-green{color:var(--c4)} .file-entry-red{color:var(--c6);opacity:.4;text-decoration:line-through}
+.config-note{margin-top:1.5rem;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.1);border-radius:8px;padding:1.1rem 1.4rem;font-size:.88rem;color:var(--muted2);line-height:1.75}
+.config-note strong{color:var(--c2);font-weight:500}
+
+/* demo section */
+.demo-section{max-width:1120px;margin:0 auto}
+.demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start}
+.demo-col-label{font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:1.1rem;display:flex;align-items:center;gap:.5rem}
+.demo-col-label.bad{color:var(--c6)} .demo-col-label.good{color:var(--c4)}
+.notif-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.8rem;font-size:.88rem;position:relative;overflow:hidden;transition:all .3s}
+.notif-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.notif-card.bad::before{background:var(--c6);opacity:.6} .notif-card.good::before{background:var(--c4);opacity:.6}
+.notif-card.bad{border-color:rgba(244,63,94,.12);animation:strikeThrough 3s ease infinite}
+@keyframes strikeThrough{0%,60%{opacity:1;transform:translateX(0)}80%{opacity:.2;transform:translateX(20px);border-color:rgba(244,63,94,.4)}85%{opacity:0;transform:translateX(70px)}86%{opacity:0;transform:translateX(-8px)}100%{opacity:1;transform:translateX(0)}}
+.notif-card.bad:nth-child(2){animation-delay:.8s} .notif-card.bad:nth-child(3){animation-delay:1.6s} .notif-card.bad:nth-child(4){animation-delay:2.4s}
+.notif-card.good{border-color:rgba(34,211,164,.1)}
+.n-icon{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.n-icon.spam{background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.12)}
+.n-icon.keep{background:rgba(34,211,164,.07);border:1px solid rgba(34,211,164,.1)}
+.n-body{flex:1}
+.n-app{font-size:.66rem;color:var(--muted);font-family:var(--mono);margin-bottom:.1rem}
+.n-msg{color:var(--text);font-size:.88rem}
+.n-tag{font-family:var(--mono);font-size:.62rem;font-weight:700;padding:.15rem .55rem;border-radius:2px;flex-shrink:0;letter-spacing:.05em}
+.n-tag.blocked{background:rgba(244,63,94,.1);color:var(--c6);border:1px solid rgba(244,63,94,.2)}
+.n-tag.kept{background:rgba(34,211,164,.07);color:var(--c4);border:1px solid rgba(34,211,164,.18)}
+
+/* ── LIVE DEMO SECTION ── */
+.live-demo-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.live-demo-section::before{content:'';position:absolute;top:-100px;right:-100px;width:500px;height:500px;background:radial-gradient(ellipse,rgba(244,63,94,.04) 0%,transparent 65%);pointer-events:none}
+.live-grid{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;align-items:start}
+.live-terminal-box{background:#04070c;border:1px solid rgba(0,229,255,.15);border-radius:10px;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.6)}
+.live-terminal-bar{background:#080e17;padding:.65rem 1rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--border)}
+#liveTermBody{padding:1.3rem 1.5rem;font-family:var(--mono);font-size:.78rem;line-height:1.9;min-height:400px;max-height:400px;overflow-y:auto;scroll-behavior:smooth}
+#liveTermBody::-webkit-scrollbar{width:3px} #liveTermBody::-webkit-scrollbar-track{background:transparent} #liveTermBody::-webkit-scrollbar-thumb{background:rgba(0,229,255,.2);border-radius:2px}
+.live-counters{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:1rem;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.live-counter{background:var(--bg);padding:1rem;text-align:center}
+.live-counter-val{font-family:var(--mono);font-size:1.5rem;font-weight:700;line-height:1}
+.live-counter-lbl{font-family:var(--mono);font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+
+/* kill cards */
+.kill-cards{display:flex;flex-direction:column;gap:.75rem}
+.kill-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.3rem;transition:all .2s;cursor:default}
+.kill-card:hover{transform:translateY(-1px)}
+.kill-card-tag{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.45rem}
+.kill-card-title{font-size:.9rem;color:var(--text);font-weight:500;margin-bottom:.25rem}
+.kill-card-sub{font-size:.84rem;color:var(--muted2);line-height:1.6}
+.kill-summary{margin-top:1rem;padding:.9rem 1.2rem;background:rgba(34,211,164,.04);border:1px solid rgba(34,211,164,.1);border-radius:8px;font-family:var(--mono);font-size:.72rem;color:var(--muted2);line-height:1.7}
+.kill-summary span{color:var(--c4)}
+
+/* features */
+.features-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.features-section::before{content:'';position:absolute;bottom:0;right:0;width:500px;height:400px;background:radial-gradient(ellipse,rgba(0,229,255,.04) 0%,transparent 70%);pointer-events:none}
+.features-inner{max-width:1120px;margin:0 auto}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.feat{background:var(--bg2);padding:2.2rem 2rem;transition:background .2s;position:relative;overflow:hidden}
+.feat:hover{background:var(--bg3)}
+.feat::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--c1),var(--c2));opacity:0;transition:opacity .25s}
+.feat:hover::after{opacity:.4}
+.feat-icon{font-size:1.7rem;margin-bottom:1.3rem;display:block}
+.feat-title{font-family:var(--head);font-size:1.05rem;font-weight:700;margin-bottom:.55rem;letter-spacing:-.02em}
+.feat-desc{font-size:.9rem;color:var(--muted2);line-height:1.7}
+.feat-tag{display:inline-block;margin-top:1rem;font-family:var(--mono);font-size:.64rem;color:var(--c1);background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.12);padding:.18rem .55rem;border-radius:2px}
+
+/* audience */
+.audience-section{max-width:1120px;margin:0 auto}
+.audience-list{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.aud-row{display:grid;grid-template-columns:64px 190px 1fr;align-items:center;background:var(--bg2);padding:1.6rem 1.5rem;gap:1.5rem;transition:background .2s,padding-left .2s;position:relative}
+.aud-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--c1),var(--c2));opacity:0;transition:opacity .2s}
+.aud-row:hover{background:var(--bg3);padding-left:2rem} .aud-row:hover::before{opacity:.5}
+.aud-emoji{font-size:1.9rem}
+.aud-type{font-family:var(--head);font-weight:700;font-size:.95rem;letter-spacing:-.02em}
+.aud-detail{font-size:.92rem;color:var(--muted2);line-height:1.68}
+
+/* stats */
+.stats-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.stats-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 60% at 50% 50%,rgba(34,211,164,.04) 0%,transparent 70%);pointer-events:none}
+.stats-inner{max-width:1120px;margin:0 auto;position:relative}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.stat-box{background:var(--bg);padding:3rem 2rem;text-align:center;transition:background .2s}
+.stat-box:hover{background:var(--bg2)}
+.stat-value{font-family:var(--mono);font-size:3.5rem;font-weight:700;line-height:1;margin-bottom:.6rem}
+.stat-value.g{color:var(--c4);text-shadow:0 0 30px rgba(34,211,164,.3)}
+.stat-value.r{color:var(--c6);text-shadow:0 0 30px rgba(244,63,94,.2)}
+.stat-value.b{color:var(--c1);text-shadow:0 0 30px rgba(0,229,255,.2)}
+.stat-label{font-size:.86rem;color:var(--muted2);max-width:180px;margin:0 auto;line-height:1.6}
+.compare-table{margin-top:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.c-col{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .2s}
+.c-col.bad:hover{border-color:rgba(244,63,94,.22)} .c-col.good:hover{border-color:rgba(34,211,164,.22)}
+.c-col-head{padding:1rem 1.4rem;font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+.c-col-head.bad{color:var(--c6);background:rgba(244,63,94,.05)} .c-col-head.good{color:var(--c4);background:rgba(34,211,164,.04)}
+.c-row{display:flex;justify-content:space-between;padding:.88rem 1.4rem;font-size:.9rem;border-bottom:1px solid var(--border);transition:background .15s}
+.c-row:last-child{border-bottom:none} .c-row:hover{background:rgba(255,255,255,.02)}
+.c-label{color:var(--muted2)} .c-val{font-family:var(--mono);font-weight:600}
+.c-col.bad .c-val{color:var(--c6)} .c-col.good .c-val{color:var(--c4)}
+.yearly-banner{margin-top:1.5rem;background:linear-gradient(135deg,rgba(34,211,164,.04),rgba(0,229,255,.04));border:1px solid rgba(34,211,164,.12);border-radius:12px;padding:3.5rem 2rem;text-align:center;position:relative;overflow:hidden}
+.yearly-banner::before{content:'';position:absolute;inset:-1px;border-radius:12px;background:linear-gradient(135deg,rgba(34,211,164,.18),transparent 40%,rgba(0,229,255,.14));z-index:-1}
+.yearly-big{font-family:var(--head);font-size:clamp(2.8rem,5vw,4.2rem);font-weight:800;color:var(--c4);line-height:1;letter-spacing:-.04em;text-shadow:0 0 60px rgba(34,211,164,.25)}
+.yearly-sub{color:var(--muted2);margin-top:.8rem;font-size:.96rem;font-weight:300;line-height:1.7}
+
+/* buy */
+.buy-section{text-align:center;position:relative;overflow:hidden}
+.buy-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 65% 65% at 50% 50%,rgba(0,229,255,.055) 0%,transparent 65%),radial-gradient(ellipse 35% 35% at 20% 20%,rgba(34,211,164,.035) 0%,transparent 70%);pointer-events:none}
+.buy-glow{display:none}
+.buy-section h2{font-size:clamp(2.3rem,4.5vw,3.8rem);margin-bottom:1rem;position:relative}
+.buy-inner{position:relative}
+.buy-inner p{color:var(--muted2);max-width:480px;margin:0 auto 2rem;font-weight:300;font-size:1.05rem}
+.price-row{display:inline-flex;align-items:baseline;gap:.5rem;margin-bottom:2.5rem;position:relative}
+.price-num{font-family:var(--mono);font-size:5.5rem;font-weight:700;color:var(--c1);line-height:1;text-shadow:0 0 60px rgba(0,229,255,.3)}
+.price-label{color:var(--muted);font-family:var(--mono);font-size:.9rem}
+.buy-meta{margin-top:1.5rem;display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;font-family:var(--mono);font-size:.72rem;color:var(--muted);position:relative}
+.buy-meta span{display:flex;align-items:center;gap:.35rem}
+
+/* contact */
+.contact-section{background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.contact-inner{max-width:1120px;margin:0 auto}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.contact-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:2.2rem;display:flex;align-items:center;gap:1.5rem;text-decoration:none;transition:all .3s;position:relative;overflow:hidden}
+.contact-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s}
+.contact-card.whatsapp::before{background:radial-gradient(ellipse at left,rgba(37,211,102,.07) 0%,transparent 70%)}
+.contact-card.email::before{background:radial-gradient(ellipse at left,rgba(0,229,255,.07) 0%,transparent 70%)}
+.contact-card:hover{transform:translateY(-3px)}
+.contact-card.whatsapp:hover{border-color:rgba(37,211,102,.3);box-shadow:0 12px 40px rgba(37,211,102,.08)}
+.contact-card.email:hover{border-color:rgba(0,229,255,.3);box-shadow:0 12px 40px rgba(0,229,255,.08)}
+.contact-card:hover::before{opacity:1}
+.contact-icon-wrap{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;position:relative;z-index:1}
+.contact-card.whatsapp .contact-icon-wrap{background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.18)}
+.contact-card.email .contact-icon-wrap{background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.18)}
+.contact-info{flex:1;position:relative;z-index:1}
+.contact-label{font-family:var(--mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+.contact-card.whatsapp .contact-label{color:rgba(37,211,102,.6)}
+.contact-card.email .contact-label{color:rgba(0,229,255,.6)}
+.contact-value{font-family:var(--mono);font-size:.92rem;font-weight:500;color:var(--text);margin-bottom:.3rem}
+.contact-sub{font-size:.82rem;color:var(--muted2)}
+.contact-arrow{font-family:var(--mono);font-size:1.1rem;position:relative;z-index:1;transition:transform .2s}
+.contact-card.whatsapp .contact-arrow{color:rgba(37,211,102,.4)}
+.contact-card.email .contact-arrow{color:rgba(0,229,255,.4)}
+.contact-card:hover .contact-arrow{transform:translateX(5px)}
+.contact-note{margin-top:1.5rem;text-align:center;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
+/* footer */
+footer{border-top:1px solid var(--border);padding:2rem;text-align:center;font-family:var(--mono);font-size:.72rem;color:var(--muted);position:relative;z-index:1}
+footer::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:200px;height:1px;background:linear-gradient(90deg,transparent,var(--c1),transparent);opacity:.3}
+footer a{color:var(--muted);text-decoration:none;transition:color .2s} footer a:hover{color:var(--c1)}
+
+/* animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:translateY(0)}
+@keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .features-grid{grid-template-columns:1fr 1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .live-grid{grid-template-columns:1fr}
+  .live-grid .kill-cards{display:none}
+}
+@media(max-width:768px){
+  .config-grid,.demo-grid,.compare-table,.contact-grid{grid-template-columns:1fr}
+  .features-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr}
+  .flow-step{grid-template-columns:1fr}
+  .flow-num{border-right:none;border-bottom:1px solid var(--border);padding:1rem 1.5rem;flex-direction:row;gap:1rem;align-items:center}
+  .flow-step-num{font-size:1.8rem}
+  .aud-row{grid-template-columns:48px 1fr;gap:1rem}
+  .aud-type{display:none}
+  .nav-links,.nav-buy{display:none}
+  .hamburger{display:flex}
+  h1{font-size:clamp(2.4rem,9vw,3.2rem);letter-spacing:-.03em}
+  h2{font-size:clamp(1.9rem,6vw,2.5rem)}
+  .price-num{font-size:4rem}
+  .hero-stats{gap:16px;padding:1.2rem 1.5rem}
+  .hstat-val{font-size:1.5rem}
+  section{padding:4.5rem 1.2rem}
+  .hero{padding:6rem 1.2rem 3.5rem}
+  nav{padding:0 1.2rem}
+  .hero-cta-group{flex-direction:column;align-items:center}
+  .btn-main,.btn-ghost{width:100%;justify-content:center;max-width:320px}
+  .yearly-big{font-size:2.8rem}
+  .live-demo-section{display:block}
+}
+@media(max-width:480px){
+  h1{font-size:2.2rem}
+  .stat-value{font-size:2.8rem}
+  .price-num{font-size:3.2rem}
+  #liveTermBody{font-size:.74rem;padding:1rem 1.1rem;min-height:300px;max-height:300px}
+  .terminal-body{font-size:.78rem}
 }
 </style>
 </head>
 <body>
+<canvas id="bg-canvas"></canvas>
 
 <!-- NAV -->
 <nav>
@@ -1042,48 +354,56 @@ footer {
   </div>
   <ul class="nav-links">
     <li><a href="#how">How It Works</a></li>
-    <li><a href="#config">Setup</a></li>
+    <li><a href="#liveDemo">Live Demo</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#buy">Pricing</a></li>
   </ul>
-  <a href="#buy" class="nav-buy">Get it — $9</a>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="#buy" class="nav-buy">Get it — $49</a>
 </nav>
+
+<ul class="mobile-menu" id="mobileMenu">
+  <li><a href="#how" onclick="closeMobile()">How It Works</a></li>
+  <li><a href="#liveDemo" onclick="closeMobile()">Live Demo</a></li>
+  <li><a href="#features" onclick="closeMobile()">Features</a></li>
+  <li><a href="#contact" onclick="closeMobile()">Contact</a></li>
+  <li><a href="#buy" onclick="closeMobile()">Pricing</a></li>
+  <li><a href="#buy" class="mobile-buy-btn" onclick="closeMobile()">⬇ Get it — $49</a></li>
+</ul>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-bg-grid"></div>
-  <div class="hero-orb"></div>
-
+  <div class="hero-grid"></div>
   <div class="status-chip">WINDOWS 10 &amp; 11 · PORTABLE EXE · NO INSTALL</div>
-
   <h1>
     Kill the <span class="kill">Notification</span><br>
     Noise. Keep the<br>
     <em>Signal.</em>
   </h1>
-
   <p class="hero-desc">
     Notification Manager reads directly from the <strong>Windows Notification Database</strong> and automatically dismisses every app not on your whitelist — every few seconds, silently, forever.
   </p>
-
   <div class="hero-cta-group">
     <a href="#buy" class="btn-main" onclick="openModal(event)">⬇ Download Notification Manager</a>
     <a href="#how" class="btn-ghost">See the Tech →</a>
   </div>
-
   <p class="one-time-note">One-time purchase · <span>No subscription · No background service installed</span></p>
-
-  <!-- LIVE TERMINAL -->
+  <div class="hero-stats">
+    <div class="hstat"><div class="hstat-val accent-c6">18+</div><div class="hstat-label">Notifications killed / cycle</div></div>
+    <div class="hstat"><div class="hstat-val accent-c4">15s</div><div class="hstat-label">Check interval</div></div>
+    <div class="hstat"><div class="hstat-val accent-c1">0</div><div class="hstat-label">Wanted notifs disturbed</div></div>
+    <div class="hstat"><div class="hstat-val accent-c5">$49</div><div class="hstat-label">One-time, no sub</div></div>
+  </div>
   <div class="terminal-wrap">
     <div class="terminal">
       <div class="terminal-bar">
-        <div class="t-dot r"></div>
-        <div class="t-dot y"></div>
-        <div class="t-dot g"></div>
+        <div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div>
         <div class="t-title">Notification_Manager.exe — Running</div>
       </div>
-      <div class="terminal-body" id="termBody">
+      <div class="terminal-body">
         <span class="t-line t-green">🟢 Notification Auto Controller started (Interval: 15s)</span>
         <span class="t-line t-muted">─────────────────────────────────────────</span>
         <span class="t-line t-white">▶ Running: Extract_Notification_From_Database</span>
@@ -1105,218 +425,186 @@ footer {
   </div>
 </section>
 
-<!-- HOW IT ACTUALLY WORKS -->
-<section class="section" id="how">
-  <div class="section-badge reveal">How It Works</div>
-  <h2 class="reveal">How Notification Manager Actually Works</h2>
-  <p class="section-sub reveal">Simple, smart, and silent. Here's exactly what happens when you run it — no tech jargon.</p>
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
 
-  <div class="tech-flow reveal">
-    <div class="flow-step">
-      <div class="flow-num">
-        <span class="flow-step-label">Step 01</span>
-        <span class="flow-step-num">01</span>
-        <span class="flow-func">You run the app</span>
-      </div>
-      <div class="flow-content">
-        <div class="flow-title">You Double-Click and Answer Two Questions</div>
-        <div class="flow-desc">
-          A small popup appears asking: have you added your apps to the list? And how often should it check — every 15 seconds, 30 seconds, your choice. That's the only setup. After that, it runs silently in the background with no window, no taskbar icon, nothing to click.
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="section-tag accent-c1 reveal">001 — How It Works</div>
+    <h2 class="reveal">How It <span class="accent-c1">Actually</span> Works</h2>
+    <p class="section-sub reveal">Simple, smart, and silent. Here's exactly what happens when you run it — no tech jargon.</p>
+    <div class="tech-flow reveal">
+      <div class="flow-step">
+        <div class="flow-num"><span class="flow-step-label">Step 01</span><span class="flow-step-num">01</span><span class="flow-func">You run the app</span></div>
+        <div class="flow-content">
+          <div class="flow-title">You Double-Click and Answer Two Questions</div>
+          <div class="flow-desc">A small popup appears asking: have you added your apps to the list? And how often should it check — every 15 seconds, 30 seconds, your choice. That's the only setup. After that, it runs silently in the background with no window, no taskbar icon, nothing to click.</div>
         </div>
       </div>
-    </div>
-
-    <div class="flow-step">
-      <div class="flow-num">
-        <span class="flow-step-label">Step 02</span>
-        <span class="flow-step-num">02</span>
-        <span class="flow-func">It reads all your notifications</span>
-      </div>
-      <div class="flow-content">
-        <div class="flow-title">It Looks at Every Notification Currently on Your PC</div>
-        <div class="flow-desc">
-          Windows keeps a hidden record of every notification sitting in your system. Notification Manager reads that list — seeing exactly what's there right now, including the app name, the message text, and when it arrived. Think of it like peeking into your notification inbox, but automatically.
+      <div class="flow-step">
+        <div class="flow-num"><span class="flow-step-label">Step 02</span><span class="flow-step-num">02</span><span class="flow-func">Reads the database</span></div>
+        <div class="flow-content">
+          <div class="flow-title">It Looks at Every Notification Currently on Your PC</div>
+          <div class="flow-desc">Windows keeps a hidden record of every notification in a SQLite file called <span class="mono">wpndatabase.db</span>. Notification Manager reads that list directly — seeing exactly what's there, including app name, message text, and timestamp. No screen-scraping, no UI tricks.</div>
         </div>
       </div>
-    </div>
-
-    <div class="flow-step">
-      <div class="flow-num">
-        <span class="flow-step-label">Step 03</span>
-        <span class="flow-step-num">03</span>
-        <span class="flow-func">It checks your list</span>
-      </div>
-      <div class="flow-content">
-        <div class="flow-title">It Compares Each Notification to Your "Keep" List</div>
-        <div class="flow-desc">
-          You told it which apps you care about — WhatsApp, Slack, Outlook, whatever. For each notification it finds, it asks one simple question: <em>"Is this from an app the user wants to keep?"</em> If yes, it leaves it alone. If no — whether it's a Windows tip, antivirus upsell, or browser ad — it goes on the removal list.
+      <div class="flow-step">
+        <div class="flow-num"><span class="flow-step-label">Step 03</span><span class="flow-step-num">03</span><span class="flow-func">Checks your whitelist</span></div>
+        <div class="flow-content">
+          <div class="flow-title">It Compares Each Notification to Your "Keep" List</div>
+          <div class="flow-desc">You told it which apps you care about — WhatsApp, Slack, Outlook, whatever. For each notification it finds, it asks: <em>"Is this from an app the user wants?"</em> If yes, left alone. If no — Windows tips, antivirus upsells, loan spam, browser ads — it goes on the removal list.</div>
         </div>
       </div>
-    </div>
-
-    <div class="flow-step">
-      <div class="flow-num">
-        <span class="flow-step-label">Step 04</span>
-        <span class="flow-step-num">04</span>
-        <span class="flow-func">It removes the junk</span>
-      </div>
-      <div class="flow-content">
-        <div class="flow-title">It Dismisses Unwanted Notifications Automatically</div>
-        <div class="flow-desc">
-          Every notification on the removal list gets dismissed — the same way you would by clicking the X, but done instantly and automatically. No mouse movement, no clicking around. It's gone before you even notice it appeared. Your Action Center stays clean.
+      <div class="flow-step">
+        <div class="flow-num"><span class="flow-step-label">Step 04</span><span class="flow-step-num">04</span><span class="flow-func">Kills the junk</span></div>
+        <div class="flow-content">
+          <div class="flow-title">It Dismisses Unwanted Notifications Automatically</div>
+          <div class="flow-desc">Every notification on the removal list gets dismissed via the real Windows notification API using a bundled .NET 8 helper — not fake clicks or AutoHotkey. It's gone before you even notice it appeared. Your Action Center stays spotless.</div>
         </div>
       </div>
-    </div>
-
-    <div class="flow-step">
-      <div class="flow-num">
-        <span class="flow-step-label">Step 05</span>
-        <span class="flow-step-num">05</span>
-        <span class="flow-func">It keeps watching</span>
-      </div>
-      <div class="flow-content">
-        <div class="flow-title">It Repeats This Every Few Seconds, Forever</div>
-        <div class="flow-desc">
-          After cleaning, it waits for your chosen interval — say, 15 seconds — then does the whole thing again. New spam notification popped up? Gone on the next check. It never stops watching, never needs you to do anything, and uses almost no memory or CPU while it runs.
+      <div class="flow-step">
+        <div class="flow-num"><span class="flow-step-label">Step 05</span><span class="flow-step-num">05</span><span class="flow-func">Keeps watching</span></div>
+        <div class="flow-content">
+          <div class="flow-title">It Repeats Every Few Seconds, Forever</div>
+          <div class="flow-desc">After cleaning, it waits your chosen interval — 15 seconds by default — then does the whole thing again. New spam popped up? Gone on the next cycle. Never stops watching, never needs you to do anything, uses almost no memory or CPU.</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CONFIG FILES -->
-<section class="config-section" id="config">
-  <div class="config-inner">
-    <div class="section-badge reveal">Dead Simple Setup</div>
-    <h2 class="reveal">Two Text Files. That's Your Config.</h2>
-    <p class="section-sub reveal">Notification Manager auto-creates these files on first run. Open them in Notepad and add the apps you want to keep. One name per line.</p>
+<hr class="divider">
 
+<!-- LIVE REAL-TIME DEMO — based on actual execution data -->
+<section class="live-demo-section" id="liveDemo">
+  <div class="wrap" style="padding:7rem 0">
+    <div class="section-tag accent-c6 reveal">002 — Real Execution</div>
+    <h2 class="reveal">Watch It Work — <span class="accent-c6">Real Data,</span> Real Run</h2>
+    <p class="section-sub reveal">This replay is based on an actual execution log from a real Windows machine. 18 notifications killed in one cycle — loan spam, shopping ads, bank promos, system nags — gone in under a second. The right column shows exactly what was dismissed and why.</p>
+
+    <div class="live-grid reveal">
+      <!-- animated terminal -->
+      <div>
+        <div style="font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;gap:.5rem;">
+          <span style="width:6px;height:6px;background:var(--c4);border-radius:50%;box-shadow:0 0 8px var(--c4);animation:blink 1.5s infinite;display:inline-block;"></span>
+          Live terminal replay — real execution log
+        </div>
+        <div class="live-terminal-box">
+          <div class="live-terminal-bar">
+            <div class="t-dot r"></div><div class="t-dot y"></div><div class="t-dot g"></div>
+            <span style="flex:1;text-align:center;font-family:var(--mono);font-size:.65rem;color:var(--muted);">Notification_Manager.exe — Cycle Replay</span>
+          </div>
+          <div id="liveTermBody"></div>
+        </div>
+        <div class="live-counters">
+          <div class="live-counter"><div class="live-counter-val accent-c1" id="ctrCycles">0</div><div class="live-counter-lbl">Cycles Run</div></div>
+          <div class="live-counter"><div class="live-counter-val accent-c6" id="ctrKilled">0</div><div class="live-counter-lbl">Total Dismissed</div></div>
+          <div class="live-counter"><div class="live-counter-val accent-c5" id="ctrTimer">15s</div><div class="live-counter-lbl">Next Check</div></div>
+        </div>
+      </div>
+
+      <!-- what was actually killed -->
+      <div class="kill-cards">
+        <div style="font-family:var(--mono);font-size:.68rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.8rem;display:flex;align-items:center;gap:.5rem;">
+          <span style="width:6px;height:6px;background:var(--c6);border-radius:50%;box-shadow:0 0 8px var(--c6);display:inline-block;"></span>
+          What actually got killed — from this exact run
+        </div>
+        <div class="kill-card" style="border-left:3px solid var(--c6)">
+          <div class="kill-card-tag accent-c6">💸 Loan &amp; Finance Spam — RBM Agents</div>
+          <div class="kill-card-title">ram_fincorp_nkb8yndf_agent@rbm.goog</div>
+          <div class="kill-card-sub">Unsolicited loan offers pushed via Google RBM. Dismissed instantly — ID: 349655. Never appeared on screen.</div>
+        </div>
+        <div class="kill-card" style="border-left:3px solid var(--c3)">
+          <div class="kill-card-tag accent-c3">🛍️ Shopping Spam — E-commerce Push Ads</div>
+          <div class="kill-card-title">shein_o8t1ixuq_agent@rbm.goog &nbsp;·&nbsp; bigbasket_sghvyjmg_agent@rbm.goog</div>
+          <div class="kill-card-sub">Both fashion and grocery push ads via RBM — killed before they reached the notification tray. IDs: 349668, 349351.</div>
+        </div>
+        <div class="kill-card" style="border-left:3px solid var(--c5)">
+          <div class="kill-card-tag accent-c5">🏦 Bank &amp; Credit Promos</div>
+          <div class="kill-card-title">AD-AXISBK-S &nbsp;·&nbsp; TX-KRZBEE-S &nbsp;·&nbsp; CP-BESLSM-S</div>
+          <div class="kill-card-sub">Credit card upsells and promotional bank alerts from Axis Bank and others. Dismissed automatically, every cycle.</div>
+        </div>
+        <div class="kill-card" style="border-left:3px solid var(--c2)">
+          <div class="kill-card-tag accent-c2">🪟 System Nags</div>
+          <div class="kill-card-title">"Turn on Windows Firewall" &nbsp;·&nbsp; "Make Adobe Acrobat default"</div>
+          <div class="kill-card-sub">OS and app nagging dismissed silently. You set it up once — Notification Manager handles the rest forever.</div>
+        </div>
+        <div class="kill-card" style="border-left:3px solid var(--c1)">
+          <div class="kill-card-tag accent-c1">⚡ Unwhitelisted Apps — Everything Else</div>
+          <div class="kill-card-title">"Claude responded" × 8 &nbsp;·&nbsp; "Kaushal Choudhary"</div>
+          <div class="kill-card-sub">Even Claude.ai and social pings — if they're not on your whitelist, they go. Your rules, always. Add any app to keep it.</div>
+        </div>
+        <div class="kill-summary">
+          <span>// THIS CYCLE:</span> 18 dismissed · 0 wanted touched · Action Center: <span>clean ✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIG -->
+<section class="config-section" id="config">
+  <div class="config-inner" style="padding:7rem 2rem">
+    <div class="section-tag accent-c2 reveal">003 — Setup</div>
+    <h2 class="reveal">Two Files. <span class="accent-c2">That's It.</span></h2>
+    <p class="section-sub reveal">Notification Manager auto-creates these on first run. Open in Notepad, add your app names. One name per line. That's the entire setup.</p>
     <div class="config-grid reveal">
       <div class="file-card">
-        <div class="file-card-header">
-          <span class="file-icon">📄</span>
-          <span class="file-name">target_apps.txt</span>
-          <span class="file-badge">APP NAMES</span>
-        </div>
+        <div class="file-card-header"><span class="file-icon">📄</span><span class="file-name">target_apps.txt</span><span class="file-badge">APP NAMES</span></div>
         <div class="file-body">
           <div class="file-comment"># Add app names to keep. Case-insensitive.</div>
-          <div class="file-comment"># Matches title, subtitle, attribution & XML</div>
-          <br>
+          <div class="file-comment"># Matches title, subtitle, attribution &amp; XML</div><br>
           <div class="file-entry-green">WhatsApp</div>
           <div class="file-entry-green">Slack</div>
           <div class="file-entry-green">Outlook</div>
           <div class="file-entry-green">Discord</div>
-          <div class="file-entry-green">Teams</div>
-          <br>
+          <div class="file-entry-green">Teams</div><br>
           <div class="file-entry-red">Windows</div>
           <div class="file-entry-red">OneDrive</div>
           <div class="file-comment"># ↑ not on list = auto-dismissed</div>
         </div>
       </div>
-
       <div class="file-card">
-        <div class="file-card-header">
-          <span class="file-icon">📄</span>
-          <span class="file-name">target_titles.txt</span>
-          <span class="file-badge">EXACT TITLES</span>
-        </div>
+        <div class="file-card-header"><span class="file-icon">📄</span><span class="file-name">target_titles.txt</span><span class="file-badge">EXACT TITLES</span></div>
         <div class="file-body">
           <div class="file-comment"># Add exact notification titles to keep.</div>
-          <div class="file-comment"># Perfect for specific alerts you always want.</div>
-          <br>
+          <div class="file-comment"># Perfect for specific alerts you always want.</div><br>
           <div class="file-entry-green">Build succeeded</div>
           <div class="file-entry-green">Deployment complete</div>
           <div class="file-entry-green">Meeting in 5 minutes</div>
-          <div class="file-entry-green">New pull request</div>
-          <br>
+          <div class="file-entry-green">New pull request</div><br>
           <div class="file-comment"># Exact title match takes priority</div>
           <div class="file-comment"># over app matching</div>
         </div>
       </div>
     </div>
-
-    <div class="config-note reveal">
-      <strong>How matching works:</strong> Notification Manager checks if your app name appears anywhere inside the notification's title, subtitle, attribution field, or even the raw XML payload. This means writing "WhatsApp" will catch WhatsApp notifications regardless of how they're formatted internally.
-    </div>
+    <div class="config-note reveal"><strong>How matching works:</strong> Notification Manager checks if your app name appears anywhere inside the notification's title, subtitle, attribution field, or even the raw XML payload. Writing "WhatsApp" catches all WhatsApp notifications regardless of internal formatting.</div>
   </div>
 </section>
 
-<!-- NOTIFICATION DEMO -->
-<section class="demo-section">
-  <div class="section-badge reveal">Live Filter Demo</div>
-  <h2 class="reveal">What Gets Killed. What Stays.</h2>
-  <p class="section-sub reveal">Based on a typical <span style="font-family:var(--mono);color:var(--yellow);font-size:0.85em;">target_apps.txt</span> with WhatsApp, Slack, and Outlook.</p>
-
-  <div class="demo-grid reveal">
-    <div>
-      <div class="demo-col-label bad">❌ Auto-Dismissed (Spam)</div>
-      <div class="notif-card bad">
-        <div class="n-icon spam">🪟</div>
-        <div class="n-body">
-          <div class="n-app">Windows · System</div>
-          <div class="n-msg">Set up OneDrive to back up your files</div>
-        </div>
-        <div class="n-tag blocked">BLOCKED</div>
+<!-- DEMO — filter visual -->
+<section>
+  <div class="wrap demo-section">
+    <div class="section-tag accent-c3 reveal">004 — Filter Demo</div>
+    <h2 class="reveal">What Gets <span class="accent-c6">Killed.</span> What <span class="accent-c4">Stays.</span></h2>
+    <p class="section-sub reveal">Based on a typical <span style="font-family:var(--mono);color:var(--c5);font-size:.9em">target_apps.txt</span> with WhatsApp, Slack, and Outlook.</p>
+    <div class="demo-grid reveal">
+      <div>
+        <div class="demo-col-label bad">❌ Auto-Dismissed (Spam)</div>
+        <div class="notif-card bad"><div class="n-icon spam">🪟</div><div class="n-body"><div class="n-app">Windows · System</div><div class="n-msg">Set up OneDrive to back up your files</div></div><div class="n-tag blocked">BLOCKED</div></div>
+        <div class="notif-card bad"><div class="n-icon spam">🛡️</div><div class="n-body"><div class="n-app">Antivirus · Renewal</div><div class="n-msg">Your subscription expires in 3 days!</div></div><div class="n-tag blocked">BLOCKED</div></div>
+        <div class="notif-card bad"><div class="n-icon spam">📰</div><div class="n-body"><div class="n-app">News &amp; Interests · Feed</div><div class="n-msg">Top stories are waiting for you</div></div><div class="n-tag blocked">BLOCKED</div></div>
+        <div class="notif-card bad"><div class="n-icon spam">🌐</div><div class="n-body"><div class="n-app">Chrome · Update</div><div class="n-msg">3 extensions need your attention</div></div><div class="n-tag blocked">BLOCKED</div></div>
       </div>
-      <div class="notif-card bad">
-        <div class="n-icon spam">🛡️</div>
-        <div class="n-body">
-          <div class="n-app">Antivirus · Renewal</div>
-          <div class="n-msg">Your subscription expires in 3 days!</div>
-        </div>
-        <div class="n-tag blocked">BLOCKED</div>
-      </div>
-      <div class="notif-card bad">
-        <div class="n-icon spam">📰</div>
-        <div class="n-body">
-          <div class="n-app">News &amp; Interests · Feed</div>
-          <div class="n-msg">Top stories are waiting for you</div>
-        </div>
-        <div class="n-tag blocked">BLOCKED</div>
-      </div>
-      <div class="notif-card bad">
-        <div class="n-icon spam">🌐</div>
-        <div class="n-body">
-          <div class="n-app">Chrome · Update</div>
-          <div class="n-msg">3 extensions need your attention</div>
-        </div>
-        <div class="n-tag blocked">BLOCKED</div>
-      </div>
-    </div>
-
-    <div>
-      <div class="demo-col-label good">✓ Preserved (Your Apps)</div>
-      <div class="notif-card good">
-        <div class="n-icon keep">💬</div>
-        <div class="n-body">
-          <div class="n-app">WhatsApp · Chat</div>
-          <div class="n-msg">Hey, are you joining the call?</div>
-        </div>
-        <div class="n-tag kept">KEPT</div>
-      </div>
-      <div class="notif-card good">
-        <div class="n-icon keep">💼</div>
-        <div class="n-body">
-          <div class="n-app">Slack · #dev-team</div>
-          <div class="n-msg">PR review requested from you</div>
-        </div>
-        <div class="n-tag kept">KEPT</div>
-      </div>
-      <div class="notif-card good">
-        <div class="n-icon keep">📧</div>
-        <div class="n-body">
-          <div class="n-app">Outlook · Inbox</div>
-          <div class="n-msg">Meeting in 15 minutes: Sprint Review</div>
-        </div>
-        <div class="n-tag kept">KEPT</div>
-      </div>
-      <div class="notif-card good">
-        <div class="n-icon keep">🔔</div>
-        <div class="n-body">
-          <div class="n-app">Discord · Server</div>
-          <div class="n-msg">You were mentioned in #general</div>
-        </div>
-        <div class="n-tag kept">KEPT</div>
+      <div>
+        <div class="demo-col-label good">✓ Preserved (Your Apps)</div>
+        <div class="notif-card good"><div class="n-icon keep">💬</div><div class="n-body"><div class="n-app">WhatsApp · Chat</div><div class="n-msg">Hey, are you joining the call?</div></div><div class="n-tag kept">KEPT</div></div>
+        <div class="notif-card good"><div class="n-icon keep">💼</div><div class="n-body"><div class="n-app">Slack · #dev-team</div><div class="n-msg">PR review requested from you</div></div><div class="n-tag kept">KEPT</div></div>
+        <div class="notif-card good"><div class="n-icon keep">📧</div><div class="n-body"><div class="n-app">Outlook · Inbox</div><div class="n-msg">Meeting in 15 minutes: Sprint Review</div></div><div class="n-tag kept">KEPT</div></div>
+        <div class="notif-card good"><div class="n-icon keep">🔔</div><div class="n-body"><div class="n-app">Discord · Server</div><div class="n-msg">You were mentioned in #general</div></div><div class="n-tag kept">KEPT</div></div>
       </div>
     </div>
   </div>
@@ -1325,113 +613,54 @@ footer {
 <!-- FEATURES -->
 <section class="features-section" id="features">
   <div class="features-inner">
-    <div class="section-badge reveal">What You Get</div>
-    <h2 class="reveal">Everything you need.<br>Nothing you don't.</h2>
-
-    <div class="features-grid reveal">
-      <div class="feat">
-        <span class="feat-icon">🗄️</span>
-        <div class="feat-title">Direct Database Access</div>
-        <div class="feat-desc">Reads directly from <code style="font-family:var(--mono);font-size:0.75em;color:var(--blue)">wpndatabase.db</code> — the actual Windows notification store. No screen-scraping, no UI automation.</div>
-        <span class="feat-tag">SQLite · wpndatabase.db</span>
-      </div>
-      <div class="feat">
-        <span class="feat-icon">🧠</span>
-        <div class="feat-title">Smart XML Parsing</div>
-        <div class="feat-desc">Decodes every notification's XML payload (UTF-16LE) and extracts title, subtitle, and attribution using BeautifulSoup.</div>
-        <span class="feat-tag">BeautifulSoup · XML</span>
-      </div>
-      <div class="feat">
-        <span class="feat-icon">🎯</span>
-        <div class="feat-title">Whitelist Matching</div>
-        <div class="feat-desc">Case-insensitive fuzzy matching against title, subtitle, attribution, and raw XML. One keyword catches all variants of that app's notifications.</div>
-        <span class="feat-tag">Fuzzy Match · Case-Insensitive</span>
-      </div>
-      <div class="feat">
-        <span class="feat-icon">⚙️</span>
-        <div class="feat-title">Native API Dismiss</div>
-        <div class="feat-desc">Uses a bundled .NET 8 helper to call the real Windows notification dismissal API. No fake clicks, no AutoHotkey scripts.</div>
-        <span class="feat-tag">.NET 8 · Windows API</span>
-      </div>
-      <div class="feat">
-        <span class="feat-icon">⚡</span>
-        <div class="feat-title">Fully Portable</div>
-        <div class="feat-desc">PyInstaller-bundled single EXE. No Python runtime. No installation. Drop it anywhere and run it. Works on any Windows 10/11 machine.</div>
-        <span class="feat-tag">PyInstaller · No Install</span>
-      </div>
-      <div class="feat">
-        <span class="feat-icon">🔁</span>
-        <div class="feat-title">Configurable Loop</div>
-        <div class="feat-desc">Set your own interval at startup. 15 seconds by default. Every cycle re-reads the DB, reclassifies, and dismisses fresh. Always up to date.</div>
-        <span class="feat-tag">Custom Interval · Always On</span>
-      </div>
+    <div class="section-tag accent-c4 reveal">005 — Features</div>
+    <h2 class="reveal">Everything You <span class="accent-c4">Need.</span><br>Nothing You Don't.</h2>
+    <div class="features-grid">
+      <div class="feat"><span class="feat-icon">🗄️</span><div class="feat-title">Direct Database Access</div><div class="feat-desc">Reads directly from <code style="font-family:var(--mono);font-size:.76em;color:var(--c1)">wpndatabase.db</code> — the actual Windows notification store. No screen-scraping, no UI automation, no accessibility hooks.</div><span class="feat-tag">SQLite · wpndatabase.db</span></div>
+      <div class="feat"><span class="feat-icon">🧠</span><div class="feat-title">Smart XML Parsing</div><div class="feat-desc">Decodes every notification's XML payload (UTF-16LE) and extracts title, subtitle, and attribution using BeautifulSoup. Catches everything, including RBM agent notifications.</div><span class="feat-tag">BeautifulSoup · XML</span></div>
+      <div class="feat"><span class="feat-icon">🎯</span><div class="feat-title">Whitelist Matching</div><div class="feat-desc">Case-insensitive fuzzy matching against title, subtitle, attribution, and raw XML. One keyword catches all variants of that app's notifications — including nested fields.</div><span class="feat-tag">Fuzzy Match · Case-Insensitive</span></div>
+      <div class="feat"><span class="feat-icon">⚙️</span><div class="feat-title">Native API Dismiss</div><div class="feat-desc">Uses a bundled .NET 8 helper to call the real Windows notification dismissal API. Not AutoHotkey. Not fake mouse clicks. The same API Windows itself uses.</div><span class="feat-tag">.NET 8 · Windows API</span></div>
+      <div class="feat"><span class="feat-icon">⚡</span><div class="feat-title">Fully Portable EXE</div><div class="feat-desc">PyInstaller-bundled single EXE. No Python runtime. No installation needed. Drop it anywhere and run it. Works on any Windows 10 or 11 machine, out of the box.</div><span class="feat-tag">PyInstaller · No Install</span></div>
+      <div class="feat"><span class="feat-icon">🔁</span><div class="feat-title">Configurable Loop</div><div class="feat-desc">Set your interval at startup — 15 seconds by default. Every cycle re-reads the DB, reclassifies, and dismisses fresh. Always up to date, always running, zero attention needed.</div><span class="feat-tag">Custom Interval · Always On</span></div>
     </div>
   </div>
 </section>
 
 <!-- AUDIENCE -->
-<section class="audience-section">
-  <div class="section-badge reveal">Perfect For</div>
-  <h2 class="reveal">Who Uses Notification Manager?</h2>
-
-  <div class="audience-list reveal">
-    <div class="aud-row">
-      <div class="aud-emoji">💻</div>
-      <div class="aud-type">Developers</div>
-      <div class="aud-detail">You're mid-debug, deep in a stack trace, and "Set up OneDrive" kills your train of thought. Keep your build notifications, kill everything else.</div>
-    </div>
-    <div class="aud-row">
-      <div class="aud-emoji">🎮</div>
-      <div class="aud-type">Gamers</div>
-      <div class="aud-detail">Keep Discord pings. Block every Windows update nag, antivirus upsell, and browser notification — without enabling full silent mode and missing your party invite.</div>
-    </div>
-    <div class="aud-row">
-      <div class="aud-emoji">🎙️</div>
-      <div class="aud-type">Streamers</div>
-      <div class="aud-detail">Never have a "renew your antivirus" popup appear live on stream again. Whitelist only what you need. Everything else is dismissed before your viewers see it.</div>
-    </div>
-    <div class="aud-row">
-      <div class="aud-emoji">🎨</div>
-      <div class="aud-type">Designers</div>
-      <div class="aud-detail">Flow state is everything. Notification Manager runs in the background while you work. You'll never even notice it — until you check your Action Center and find it spotless.</div>
-    </div>
-    <div class="aud-row">
-      <div class="aud-emoji">📊</div>
-      <div class="aud-type">Office Workers</div>
-      <div class="aud-detail">Keep Teams, Outlook, and Slack. Block every Windows tip, "feature suggestion", and promotional popup that Windows sneaks in when you're on a call.</div>
+<section>
+  <div class="wrap audience-section">
+    <div class="section-tag accent-c5 reveal">006 — Who It's For</div>
+    <h2 class="reveal">Who Uses <span class="accent-c5">This?</span></h2>
+    <p class="section-sub reveal">Anyone on Windows who's tired of spam they never asked for. Here's who it helps the most.</p>
+    <div class="audience-list reveal">
+      <div class="aud-row"><div class="aud-emoji">💻</div><div class="aud-type">Developers</div><div class="aud-detail">Mid-debug, deep in a stack trace, and "Set up OneDrive" kills your flow. Keep your build notifications, CI alerts, and PR pings — kill everything else.</div></div>
+      <div class="aud-row"><div class="aud-emoji">🎮</div><div class="aud-type">Gamers</div><div class="aud-detail">Keep Discord pings. Block every Windows update nag, antivirus upsell, and loan spam — without enabling full silent mode and missing your party invite.</div></div>
+      <div class="aud-row"><div class="aud-emoji">🎙️</div><div class="aud-type">Streamers</div><div class="aud-detail">Never have a "renew your antivirus" popup appear live on stream. Whitelist only what you need. Everything else is dismissed before your viewers see it.</div></div>
+      <div class="aud-row"><div class="aud-emoji">🎨</div><div class="aud-type">Designers</div><div class="aud-detail">Flow state is everything. Notification Manager runs silently while you work. You'll never notice it — until you check your Action Center and find it spotless.</div></div>
+      <div class="aud-row"><div class="aud-emoji">📊</div><div class="aud-type">Office Workers</div><div class="aud-detail">Keep Teams, Outlook, Slack. Block every Windows tip, "feature suggestion", promotional bank alert, and RBM ad that sneaks in while you're on a call.</div></div>
     </div>
   </div>
 </section>
 
 <!-- STATS -->
 <section class="stats-section">
-  <div class="stats-inner">
-    <div class="section-badge reveal">The Real Cost</div>
-    <h2 class="reveal">Notification spam is stealing your time.</h2>
-
+  <div class="stats-inner" style="padding:7rem 2rem">
+    <div class="section-tag accent-c6 reveal">007 — The Real Cost</div>
+    <h2 class="reveal">Notification Spam Is <span class="accent-c6">Stealing</span> Your Time.</h2>
+    <p class="section-sub reveal">The numbers are worse than you think. Spam costs US businesses $20.5 billion per year in lost productivity. The average employee loses 2 full workdays just sorting through it — every year.</p>
     <div class="stats-grid reveal">
-      <div class="stat-box">
-        <div class="stat-value r">23 min</div>
-        <div class="stat-label">Average time to regain full focus after a single distraction</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-value r">20+</div>
-        <div class="stat-label">Useless notifications the average Windows user sees per day</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-value g">30 hrs</div>
-        <div class="stat-label">Hours reclaimed per year — saving just 5 minutes of annoyance per day</div>
-      </div>
+      <div class="stat-box"><div class="stat-value r">23 min</div><div class="stat-label">Average time to regain full focus after a single distraction</div></div>
+      <div class="stat-box"><div class="stat-value r">100+</div><div class="stat-label">Useless notifications the average Windows user sees per day</div></div>
+      <div class="stat-box"><div class="stat-value g">100+ hrs</div><div class="stat-label">Hours reclaimed per year — from eliminating just 5 mins of daily notification noise</div></div>
     </div>
-
     <div class="compare-table reveal">
       <div class="c-col bad">
         <div class="c-col-head bad">❌ Without Notification Manager</div>
-        <div class="c-row"><span class="c-label">Daily spam notifications</span><span class="c-val">20+</span></div>
+        <div class="c-row"><span class="c-label">Daily spam notifications</span><span class="c-val">100+</span></div>
         <div class="c-row"><span class="c-label">Time to glance + dismiss</span><span class="c-val">5 sec each</span></div>
         <div class="c-row"><span class="c-label">Clicking time per day</span><span class="c-val">~2 min</span></div>
         <div class="c-row"><span class="c-label">Focus cost per distraction</span><span class="c-val">23 min</span></div>
-        <div class="c-row"><span class="c-label">Action Center clutter</span><span class="c-val">50+ unread</span></div>
+        <div class="c-row"><span class="c-label">Action Center clutter</span><span class="c-val">100+ unread</span></div>
       </div>
       <div class="c-col good">
         <div class="c-col-head good">✅ With Notification Manager</div>
@@ -1442,32 +671,26 @@ footer {
         <div class="c-row"><span class="c-label">Action Center clutter</span><span class="c-val">Clean ✓</span></div>
       </div>
     </div>
-
     <div class="yearly-banner reveal">
-      <div class="yearly-big">30 Hours / Year</div>
+      <div class="yearly-big">100 Hours / Year</div>
       <div class="yearly-sub">Given back to you — from eliminating just 5 minutes of daily notification noise.<br>That's almost a full work week of deep focus, reclaimed.</div>
     </div>
   </div>
 </section>
 
 <!-- BUY -->
-<section class="buy-section" id="buy">
-  <div class="buy-glow"></div>
-  <div style="position:relative;z-index:1;">
-    <div class="section-badge">Get Notification Manager</div>
+<section id="buy" class="buy-section">
+  <div class="buy-inner" style="position:relative;z-index:1;padding:8rem 2rem">
+    <div class="section-tag accent-c1" style="justify-content:center">008 — Get It</div>
     <h2>One purchase.<br>Permanent silence.</h2>
-    <p>No subscription. No account. No telemetry. Just drop the EXE, add your apps, and forget it exists.</p>
-
+    <p>No subscription. No account. No telemetry. Drop the EXE, add your apps, and forget it exists.</p>
     <div class="price-row">
-      <span class="price-num">$9</span>
+      <span class="price-num">$49</span>
       <span class="price-label">one-time</span>
-    </div>
-    <br>
-
-    <a href="#" onclick="openModal(event)" class="btn-main" style="font-size:1rem;padding:1rem 2.5rem;">
+    </div><br>
+    <a href="#" onclick="openModal(event)" class="btn-main" style="font-size:1rem;padding:1.1rem 2.8rem;">
       ⬇ Download Notification_Manager.exe
     </a>
-
     <div class="buy-meta">
       <span>🔒 Secure checkout</span>
       <span>📦 Instant download</span>
@@ -1478,232 +701,316 @@ footer {
   </div>
 </section>
 
-<!-- CONTACT SECTION -->
+<!-- CONTACT -->
 <section class="contact-section" id="contact">
-  <div class="contact-inner">
-    <div class="section-badge reveal">Get In Touch</div>
-    <h2 class="reveal">Questions? Just reach out.</h2>
+  <div class="contact-inner" style="padding:7rem 2rem">
+    <div class="section-tag accent-c4 reveal">009 — Contact</div>
+    <h2 class="reveal">Questions? <span class="accent-c4">Just Reach Out.</span></h2>
     <p class="section-sub reveal">Have a question before buying, need help with setup, or want a custom build? Drop a message — typically reply within a few hours.</p>
-
     <div class="contact-grid reveal">
-
-      <a href="https://wa.me/919929321602" target="_blank" rel="noopener noreferrer" class="contact-card whatsapp">
+      <a href="https://wa.me/919929321602?text=Hi%2C%20I%20want%20to%20download%20Notification_Manager.exe" target="_blank" rel="noopener noreferrer" class="contact-card whatsapp">
         <div class="contact-icon-wrap">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/>
-          </svg>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/></svg>
         </div>
         <div class="contact-info">
           <div class="contact-label">WhatsApp</div>
-          <div class="contact-value">+91 99293 21602</div>
-          <div class="contact-sub">Message me directly — quick replies</div>
+          <div class="contact-value">Message directly — quick replies</div>
         </div>
         <div class="contact-arrow">→</div>
       </a>
-
       <a href="mailto:official.abhishant.kumar@gmail.com" class="contact-card email">
         <div class="contact-icon-wrap">
-          <svg width="26" height="22" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22 0H2C.9 0 0 .9 0 2v16c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm0 4l-10 6.5L2 4V2l10 6.5L22 2v2z" fill="#4d9fff"/>
-          </svg>
+          <svg width="26" height="22" viewBox="0 0 24 20" fill="none"><path d="M22 0H2C.9 0 0 .9 0 2v16c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm0 4l-10 6.5L2 4V2l10 6.5L22 2v2z" fill="#00e5ff"/></svg>
         </div>
         <div class="contact-info">
           <div class="contact-label">Email</div>
-          <div class="contact-value">official.abhishant.kumar</div>
-          <div class="contact-sub">@gmail.com · For detailed queries</div>
+          <div class="contact-value"> · For detailed queries</div>
         </div>
         <div class="contact-arrow">→</div>
       </a>
-
     </div>
-
-    <div class="contact-note reveal">
-      🔒 Your contact info is never stored or shared · Response time: usually within a few hours
-    </div>
+    <div class="contact-note reveal">🔒 Your contact info is never stored or shared · Response time: usually within a few hours</div>
   </div>
 </section>
 
 <!-- DOWNLOAD MODAL -->
-<div id="downloadModal" style="
-  display:none;
-  position:fixed;
-  inset:0;
-  z-index:1000;
-  background:rgba(0,0,0,0.75);
-  backdrop-filter:blur(8px);
-  align-items:center;
-  justify-content:center;
-">
-  <div style="
-    background:var(--panel);
-    border:1px solid rgba(0,212,170,0.2);
-    border-radius:12px;
-    padding:2.5rem;
-    max-width:480px;
-    width:calc(100% - 2rem);
-    position:relative;
-    box-shadow:0 0 80px rgba(0,212,170,0.08), 0 24px 64px rgba(0,0,0,0.6);
-    animation:modalIn 0.25s ease both;
-  ">
-    <!-- Close -->
-    <button onclick="closeModal()" style="
-      position:absolute;top:1rem;right:1rem;
-      background:none;border:none;color:var(--muted);
-      font-size:1.2rem;cursor:pointer;line-height:1;
-      font-family:var(--mono);
-      transition:color 0.2s;
-    " onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
-
-    <!-- Header -->
+<div id="downloadModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid rgba(0,229,255,.2);border-radius:14px;padding:2.5rem;max-width:480px;width:calc(100% - 2rem);position:relative;box-shadow:0 0 80px rgba(0,229,255,.07),0 24px 64px rgba(0,0,0,.6);animation:modalIn .25s ease both;">
+    <button onclick="closeModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;font-family:var(--mono);transition:color .2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
     <div style="margin-bottom:1.8rem;">
-      <div style="
-        font-family:var(--mono);font-size:0.65rem;
-        letter-spacing:0.15em;text-transform:uppercase;
-        color:var(--green);margin-bottom:0.7rem;
-        display:flex;align-items:center;gap:0.5rem;
-      ">
-        <span style="width:5px;height:5px;background:var(--green);border-radius:50%;display:inline-block;animation:blink 1.5s infinite;"></span>
+      <div style="font-family:var(--mono);font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:var(--c1);margin-bottom:.7rem;display:flex;align-items:center;gap:.5rem;">
+        <span style="width:5px;height:5px;background:var(--c1);border-radius:50%;display:inline-block;animation:blink 1.5s infinite;"></span>
         Ready to Download
       </div>
-      <div style="
-        font-family:'Clash Display','Epilogue',sans-serif;
-        font-size:1.4rem;font-weight:700;
-        letter-spacing:-0.02em;line-height:1.2;
-        margin-bottom:0.5rem;
-      ">Get Notification_Manager.exe</div>
-      <div style="font-size:0.85rem;color:var(--muted2);font-weight:300;">
-        Reach out via WhatsApp or Email — I'll send the download link instantly.
-      </div>
+      <div style="font-family:var(--head);font-size:1.4rem;font-weight:800;letter-spacing:-.02em;line-height:1.2;margin-bottom:.5rem;">Get  the File</div>
+      <div style="font-size:.9rem;color:var(--muted2);font-weight:300;">Reach out via WhatsApp or Email — I'll send the download link instantly.</div>
     </div>
-
-    <!-- Terminal line -->
-    <div style="
-      background:#080c12;border:1px solid var(--border);
-      border-radius:6px;padding:0.7rem 1rem;
-      font-family:var(--mono);font-size:0.75rem;
-      color:var(--muted);margin-bottom:1.8rem;
-      line-height:1.8;
-    ">
-      <span style="color:var(--green);">$</span> awaiting_contact...<br>
+    <div style="background:#080c12;border:1px solid var(--border);border-radius:6px;padding:.75rem 1rem;font-family:var(--mono);font-size:.76rem;color:var(--muted);margin-bottom:1.8rem;line-height:1.8;">
+      <span style="color:var(--c1);">$</span> awaiting_contact...<br>
       <span style="color:var(--muted);">↳ send_download_link() on receipt</span>
     </div>
-
-    <!-- WhatsApp Button -->
-    <a href="https://wa.me/919929321602?text=Hi%2C%20I%20want%20to%20download%20Notification_Manager.exe" target="_blank" rel="noopener noreferrer" style="
-      display:flex;align-items:center;gap:1rem;
-      background:rgba(37,211,102,0.07);
-      border:1px solid rgba(37,211,102,0.25);
-      border-radius:8px;padding:1rem 1.3rem;
-      text-decoration:none;
-      transition:all 0.2s;
-      margin-bottom:0.75rem;
-    "
-    onmouseover="this.style.background='rgba(37,211,102,0.13)';this.style.borderColor='rgba(37,211,102,0.45)';this.style.transform='translateY(-1px)'"
-    onmouseout="this.style.background='rgba(37,211,102,0.07)';this.style.borderColor='rgba(37,211,102,0.25)';this.style.transform='translateY(0)'"
-    >
-      <div style="
-        width:40px;height:40px;border-radius:8px;flex-shrink:0;
-        background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);
-        display:flex;align-items:center;justify-content:center;
-      ">
+    <a href="https://wa.me/919929321602?text=Hi%2C%20I%20want%20to%20download%20Notification_Manager.exe" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:1rem;background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.25);border-radius:8px;padding:1rem 1.3rem;text-decoration:none;transition:all .2s;margin-bottom:.75rem;" onmouseover="this.style.background='rgba(37,211,102,.13)';this.style.borderColor='rgba(37,211,102,.45)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(37,211,102,.07)';this.style.borderColor='rgba(37,211,102,.25)';this.style.transform='translateY(0)'">
+      <div style="width:40px;height:40px;border-radius:8px;flex-shrink:0;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.2);display:flex;align-items:center;justify-content:center;">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/></svg>
       </div>
-      <div style="flex:1;">
-        <div style="font-family:var(--mono);font-size:0.65rem;color:rgba(37,211,102,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.2rem;">WhatsApp</div>
-        <div style="font-size:0.9rem;color:var(--text);font-weight:500;">Message on WhatsApp</div>
-        <div style="font-size:0.75rem;color:var(--muted2);">+91 99293 21602 · Fastest response</div>
-      </div>
-      <div style="font-family:var(--mono);color:rgba(37,211,102,0.5);font-size:1rem;">→</div>
+      <div style="flex:1;"><div style="font-family:var(--mono);font-size:.65rem;color:rgba(37,211,102,.65);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.2rem;">WhatsApp</div><div style="font-size:.92rem;color:var(--text);font-weight:500;">Message on WhatsApp</div><div style="font-size:.76rem;color:var(--muted2);">· Fastest response</div></div>
+      <div style="font-family:var(--mono);color:rgba(37,211,102,.5);font-size:1rem;">→</div>
     </a>
-
-    <!-- Email Button -->
-    <a href="mailto:official.abhishant.kumar@gmail.com?subject=Download%20Request%3A%20Notification_Manager.exe&body=Hi%2C%20I%27d%20like%20to%20purchase%20and%20download%20Notification_Manager.exe.%20Please%20send%20me%20the%20download%20link." style="
-      display:flex;align-items:center;gap:1rem;
-      background:rgba(77,159,255,0.07);
-      border:1px solid rgba(77,159,255,0.2);
-      border-radius:8px;padding:1rem 1.3rem;
-      text-decoration:none;
-      transition:all 0.2s;
-    "
-    onmouseover="this.style.background='rgba(77,159,255,0.13)';this.style.borderColor='rgba(77,159,255,0.4)';this.style.transform='translateY(-1px)'"
-    onmouseout="this.style.background='rgba(77,159,255,0.07)';this.style.borderColor='rgba(77,159,255,0.2)';this.style.transform='translateY(0)'"
-    >
-      <div style="
-        width:40px;height:40px;border-radius:8px;flex-shrink:0;
-        background:rgba(77,159,255,0.1);border:1px solid rgba(77,159,255,0.2);
-        display:flex;align-items:center;justify-content:center;
-      ">
-        <svg width="22" height="18" viewBox="0 0 24 20" fill="none"><path d="M22 0H2C.9 0 0 .9 0 2v16c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm0 4l-10 6.5L2 4V2l10 6.5L22 2v2z" fill="#4d9fff"/></svg>
+    <a href="mailto:official.abhishant.kumar@gmail.com" style="display:flex;align-items:center;gap:1rem;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);border-radius:8px;padding:1rem 1.3rem;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(0,229,255,.13)';this.style.borderColor='rgba(0,229,255,.4)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='rgba(0,229,255,.07)';this.style.borderColor='rgba(0,229,255,.2)';this.style.transform='translateY(0)'">
+      <div style="width:40px;height:40px;border-radius:8px;flex-shrink:0;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.2);display:flex;align-items:center;justify-content:center;">
+        <svg width="22" height="18" viewBox="0 0 24 20" fill="none"><path d="M22 0H2C.9 0 0 .9 0 2v16c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm0 4l-10 6.5L2 4V2l10 6.5L22 2v2z" fill="#00e5ff"/></svg>
       </div>
-      <div style="flex:1;">
-        <div style="font-family:var(--mono);font-size:0.65rem;color:rgba(77,159,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.2rem;">Email</div>
-        <div style="font-size:0.9rem;color:var(--text);font-weight:500;">Send an Email</div>
-        <div style="font-size:0.75rem;color:var(--muted2);">official.abhishant.kumar@gmail.com</div>
-      </div>
-      <div style="font-family:var(--mono);color:rgba(77,159,255,0.5);font-size:1rem;">→</div>
+      <div style="flex:1;"><div style="font-family:var(--mono);font-size:.65rem;color:rgba(0,229,255,.6);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.2rem;">Email</div><div style="font-size:.92rem;color:var(--text);font-weight:500;">Send an Email</div><div style="font-size:.76rem;color:var(--muted2);"> · For detailed queries</div></div>
+      <div style="font-family:var(--mono);color:rgba(0,229,255,.5);font-size:1rem;">→</div>
     </a>
-
-    <div style="margin-top:1.2rem;text-align:center;font-family:var(--mono);font-size:0.68rem;color:var(--muted);">
-      🔒 $9 one-time · Instant delivery after payment
-    </div>
+    <div style="margin-top:1.2rem;text-align:center;font-family:var(--mono);font-size:.68rem;color:var(--muted);">🔒 $49 one-time · Instant delivery after payment</div>
   </div>
 </div>
-
-<style>
-@keyframes modalIn {
-  from { opacity:0; transform:scale(0.95) translateY(10px); }
-  to   { opacity:1; transform:scale(1) translateY(0); }
-}
-</style>
 
 <!-- FOOTER -->
 <footer>
   © 2025 Notification Manager · Built by a developer, for developers · Python + .NET 8 + Windows Notification API
   &nbsp;·&nbsp;
-  <a href="https://wa.me/919929321602" target="_blank" style="color:var(--muted);text-decoration:none;">WhatsApp</a>
+  <a href="https://wa.me/919929321602" target="_blank">WhatsApp</a>
   &nbsp;·&nbsp;
-  <a href="mailto:official.abhishant.kumar@gmail.com" style="color:var(--muted);text-decoration:none;">Email</a>
+  <a href="mailto:official.abhishant.kumar@gmail.com">Email</a>
 </footer>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" crossorigin="anonymous"></script>
 <script>
-// Modal
-function openModal(e) {
-  if (e) e.preventDefault();
-  const m = document.getElementById('downloadModal');
-  m.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}
-function closeModal() {
-  const m = document.getElementById('downloadModal');
-  m.style.display = 'none';
-  document.body.style.overflow = '';
-}
-document.getElementById('downloadModal').addEventListener('click', function(e) {
-  if (e.target === this) closeModal();
-});
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeModal();
-});
-
-// Scroll reveal
-const els = document.querySelectorAll('.reveal');
-const obs = new IntersectionObserver(entries => {
-  entries.forEach((e, i) => {
-    if (e.isIntersecting) {
-      setTimeout(() => e.target.classList.add('in'), i * 80);
-      obs.unobserve(e.target);
-    }
+// ── THREE.JS BACKGROUND ──────────────────────────
+(function(){
+  var canvas=document.getElementById('bg-canvas');
+  var renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setClearColor(0x000000,0);
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,.1,1000);
+  camera.position.z=4;
+  var geo=new THREE.IcosahedronGeometry(2,1);
+  var mat=new THREE.MeshBasicMaterial({color:0x00e5ff,wireframe:true,transparent:true,opacity:.1});
+  var mesh=new THREE.Mesh(geo,mat);
+  scene.add(mesh);
+  window.addEventListener('resize',function(){
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth,window.innerHeight);
   });
-}, { threshold: 0.08 });
-els.forEach(el => obs.observe(el));
+  (function animate(){requestAnimationFrame(animate);mesh.rotation.x+=.0018;mesh.rotation.y+=.0028;renderer.render(scene,camera);})();
+})();
 
-// Animate terminal lines sequentially on load
-const lines = document.querySelectorAll('.terminal-body .t-line');
-lines.forEach((line, i) => {
-  line.style.opacity = '0';
-  line.style.transition = 'opacity 0.3s ease';
-  setTimeout(() => { line.style.opacity = '1'; }, 300 + i * 120);
+// ── TICKER ──────────────────────────────────────
+(function(){
+  var items=['Reads wpndatabase.db directly','Zero screen scraping','Runs every 15 seconds','Single EXE · No install','.NET 8 Windows API','Case-insensitive matching','XML payload parsing','Configurable whitelist','Windows 10 & 11','$49 one-time · No subscription','PyInstaller bundled','SQLite database access','18 killed in one real cycle','Action Center stays clean','BeautifulSoup XML parser','RBM agent spam blocked','Bank promo alerts killed','Focus time reclaimed'];
+  var track=document.getElementById('tickerTrack');
+  if(!track)return;
+  var doubled=items.concat(items);
+  doubled.forEach(function(item){
+    var el=document.createElement('span');
+    el.className='ticker-item';
+    el.innerHTML='<span class="dot"></span>'+item;
+    track.appendChild(el);
+  });
+})();
+
+// ── HAMBURGER ────────────────────────────────────
+var hamburger=document.getElementById('hamburger');
+var mobileMenu=document.getElementById('mobileMenu');
+function closeMobile(){
+  if(hamburger)hamburger.classList.remove('open');
+  if(mobileMenu)mobileMenu.classList.remove('open');
+  document.body.style.overflow='';
+}
+if(hamburger){
+  hamburger.addEventListener('click',function(){
+    hamburger.classList.toggle('open');
+    mobileMenu.classList.toggle('open');
+    document.body.style.overflow=mobileMenu.classList.contains('open')?'hidden':'';
+  });
+}
+
+// ── MODAL ────────────────────────────────────────
+function openModal(e){
+  if(e)e.preventDefault();
+  var m=document.getElementById('downloadModal');
+  m.style.display='flex';
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  var m=document.getElementById('downloadModal');
+  m.style.display='none';
+  document.body.style.overflow='';
+}
+document.getElementById('downloadModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal();});
+
+// ── SCROLL REVEAL ────────────────────────────────
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting){entry.target.classList.add('in');observer.unobserve(entry.target);}
+  });
+},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(function(el){observer.observe(el);});
+
+// stagger features + flow
+document.querySelectorAll('.features-grid .feat').forEach(function(el,i){
+  el.classList.add('reveal');
+  el.style.transitionDelay=(i*.07)+'s';
+  observer.observe(el);
 });
+document.querySelectorAll('.flow-step').forEach(function(el,i){
+  el.classList.add('reveal');
+  el.style.transitionDelay=(i*.08)+'s';
+  observer.observe(el);
+});
+document.querySelectorAll('.aud-row').forEach(function(el,i){
+  el.classList.add('reveal');
+  el.style.transitionDelay=(i*.07)+'s';
+  observer.observe(el);
+});
+document.querySelectorAll('.kill-card').forEach(function(el,i){
+  el.classList.add('reveal');
+  el.style.transitionDelay=(i*.09)+'s';
+  observer.observe(el);
+});
+
+// ── LIVE TERMINAL ANIMATION ──────────────────────
+// Real data from actual execution screenshot — 18 notifications dismissed
+var LOG=[
+  {d:300, c:'#22d3a4', t:'🟢 Notification Auto Controller started (Interval: 15s)'},
+  {d:550, c:'#2a3a4a', t:'─────────────────────────────────────────────'},
+  {d:800, c:'#dce8f2', t:'▶ Running: Extract_Notification_From_Database'},
+  {d:1100,c:'#4a5568', t:'&nbsp;&nbsp;↳ Copying wpndatabase.db to temp...'},
+  {d:1500,c:'#4a5568', t:'&nbsp;&nbsp;↳ Querying toast notifications from SQLite...'},
+  {d:2000,c:'#22d3a4', t:'✅ Notification classification complete'},
+  {d:2100,c:'#4a5568', t:'&nbsp;&nbsp;&nbsp;Wanted&nbsp;&nbsp;&nbsp;: <span style="color:#22d3a4;font-weight:700">0</span>'},
+  {d:2200,c:'#4a5568', t:'&nbsp;&nbsp;&nbsp;Unwanted : <span style="color:#f43f5e;font-weight:700">18</span>'},
+  {d:2350,c:'#4a5568', t:'&nbsp;&nbsp;&nbsp;Output → 1_notification_classified.json'},
+  {d:2600,c:'#dce8f2', t:'▶ Running: Remove_Unwanted_Notifications'},
+  {d:2800,c:'#22d3a4', t:'✅ Wanted notifications&nbsp;&nbsp;&nbsp;&nbsp;: 0 (left untouched)'},
+  {d:2950,c:'#f43f5e', t:'❌ Unwanted notifications : 18'},
+  {d:3150,c:'#dce8f2', t:'🧹 Dismissing 18 unwanted notifications...'},
+  {d:3400,c:'#f43f5e', t:'✗ Dismissing: CP-BESLSM-S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349880)'},
+  {d:3580,c:'#f43f5e', t:'✗ Dismissing: Turn on Windows Firewall (ID: 349800)'},
+  {d:3760,c:'#f43f5e', t:'✗ Dismissing: shein_o8t1ixuq@rbm.goog (ID: 349668)'},
+  {d:3940,c:'#f43f5e', t:'✗ Dismissing: ram_fincorp_nkb8@rbm.goog(ID: 349655)'},
+  {d:4120,c:'#f43f5e', t:'✗ Dismissing: TX-KRZBEE-S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349486)'},
+  {d:4300,c:'#f43f5e', t:'✗ Dismissing: bigbasket_sghvy@rbm.goog (ID: 349351)'},
+  {d:4480,c:'#f43f5e', t:'✗ Dismissing: AD-AXISBK-S&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349282)'},
+  {d:4660,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349267)'},
+  {d:4810,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349266)'},
+  {d:4960,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349260)'},
+  {d:5110,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349255)'},
+  {d:5260,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349254)'},
+  {d:5410,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349241)'},
+  {d:5560,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349240)'},
+  {d:5710,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349239)'},
+  {d:5860,c:'#f43f5e', t:'✗ Dismissing: Kaushal Choudhary&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349235)'},
+  {d:6010,c:'#f43f5e', t:'✗ Dismissing: Make Adobe Acrobat default(ID: 349233)'},
+  {d:6160,c:'#f43f5e', t:'✗ Dismissing: Claude responded&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(ID: 349232)'},
+  {d:6450,c:'#22d3a4', t:'🎯 Done. 18 dismissed. Wanted notifications preserved.'},
+  {d:6700,c:'#facc15', t:'⏳ Waiting 15 seconds...'},
+];
+
+var termEl=document.getElementById('liveTermBody');
+var ctrCycles=document.getElementById('ctrCycles');
+var ctrKilled=document.getElementById('ctrKilled');
+var ctrTimer=document.getElementById('ctrTimer');
+var cycleNum=0, totalKilled=0, timers=[], countdownInt=null;
+
+function clearAll(){timers.forEach(function(t){if(typeof t==='number')clearTimeout(t);});timers=[];if(countdownInt)clearInterval(countdownInt);}
+
+function addLine(html,color){
+  if(!termEl)return;
+  var d=document.createElement('div');
+  d.style.cssText='color:'+color+';display:block;opacity:0;animation:fadeUp .2s ease both';
+  d.innerHTML=html;
+  termEl.appendChild(d);
+  termEl.scrollTop=termEl.scrollHeight;
+}
+
+function startCountdown(){
+  var n=15;
+  if(ctrTimer)ctrTimer.textContent=n+'s';
+  countdownInt=setInterval(function(){
+    n--;
+    if(ctrTimer)ctrTimer.textContent=(n>0?n+'s':'...');
+    if(n<=0){
+      clearInterval(countdownInt);
+      var t=setTimeout(runCleanCycle,600);
+      timers.push(t);
+    }
+  },1000);
+}
+
+function runCleanCycle(){
+  clearAll();
+  if(!termEl)return;
+  if(termEl)termEl.innerHTML='';
+  var sep=document.createElement('div');
+  sep.style.cssText='color:#1e2d3d;display:block;margin:4px 0';
+  sep.textContent='── Clean cycle ────────────────────────────────';
+  termEl.appendChild(sep);
+  var lines=[
+    {c:'#dce8f2',t:'▶ Running: Extract_Notification_From_Database'},
+    {c:'#22d3a4',t:'✅ Notification classification complete'},
+    {c:'#4a5568',t:'&nbsp;&nbsp;&nbsp;Wanted&nbsp;&nbsp;&nbsp;: <span style="color:#22d3a4">0</span>'},
+    {c:'#4a5568',t:'&nbsp;&nbsp;&nbsp;Unwanted : <span style="color:#22d3a4">0</span>'},
+    {c:'#dce8f2',t:'▶ Running: Remove_Unwanted_Notifications'},
+    {c:'#4a5568',t:'ℹ️&nbsp; No unwanted notifications to dismiss'},
+    {c:'#22d3a4',t:'🎯 Done. Wanted notifications preserved.'},
+    {c:'#facc15',t:'⏳ Waiting 15 seconds...'},
+  ];
+  lines.forEach(function(item,i){
+    var t=setTimeout(function(){addLine(item.t,item.c);},i*320);
+    timers.push(t);
+  });
+  var t2=setTimeout(function(){startCountdown();},lines.length*320+400);
+  timers.push(t2);
+  // After clean cycle, loop back to main
+  var t3=setTimeout(runMainCycle,lines.length*320+16400);
+  timers.push(t3);
+}
+
+function runMainCycle(){
+  clearAll();
+  if(!termEl)return;
+  termEl.innerHTML='';
+  cycleNum++;
+  if(ctrCycles)ctrCycles.textContent=cycleNum;
+  if(ctrTimer)ctrTimer.textContent='15s';
+
+  LOG.forEach(function(item){
+    var t=setTimeout(function(){addLine(item.t,item.c);},item.d);
+    timers.push(t);
+  });
+
+  // count up killed
+  var dismissLines=LOG.filter(function(i){return i.t.startsWith('✗');});
+  dismissLines.forEach(function(item){
+    var t=setTimeout(function(){totalKilled++;if(ctrKilled)ctrKilled.textContent=totalKilled;},item.d+80);
+    timers.push(t);
+  });
+
+  var lastDelay=LOG[LOG.length-1].d;
+  var t2=setTimeout(function(){startCountdown();},lastDelay+500);
+  timers.push(t2);
+}
+
+// Start when section enters viewport
+var demoSection=document.getElementById('liveDemo');
+var demoStarted=false;
+if(demoSection){
+  var demoObs=new IntersectionObserver(function(entries){
+    if(entries[0].isIntersecting&&!demoStarted){
+      demoStarted=true;
+      setTimeout(runMainCycle,500);
+      demoObs.disconnect();
+    }
+  },{threshold:.1});
+  demoObs.observe(demoSection);
+}
 </script>
 </body>
 </html>
